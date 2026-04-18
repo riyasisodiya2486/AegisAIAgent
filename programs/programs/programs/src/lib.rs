@@ -1,21 +1,30 @@
-pub mod constants;
-pub mod error;
-pub mod instructions;
-pub mod state;
-
 use anchor_lang::prelude::*;
 
-pub use constants::*;
-pub use instructions::*;
-pub use state::*;
+pub mod instructions;
+pub mod state;
+pub mod errors;
 
-declare_id!("ELZJMHYE2ZKT5uzTa3VR9uSAkt2vwLRtsJZjFKBMjLJA");
+// We use "pub use" here so the macro can see into the sub-modules
+pub use instructions::initialize_vault::*;
+pub use instructions::deposit::*;
+
+declare_id!("8dEjTZ3pzqTvBDyJdgmYQja8danJh5Mv1A886vaYQqVB");
 
 #[program]
-pub mod programs {
+pub mod aegis {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        initialize::handler(ctx)
+    pub fn initialize_vault(
+        ctx: Context<InitializeVault>,
+        daily_limit: u64,
+    ) -> Result<()> {
+        instructions::initialize_vault::handler(ctx, daily_limit)
+    }
+
+    pub fn deposit(
+        ctx: Context<Deposit>,
+        amount: u64,
+    ) -> Result<()> {
+        instructions::deposit::handler(ctx, amount)
     }
 }

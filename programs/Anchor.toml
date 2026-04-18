@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-aegis = "ELZJMHYE2ZKT5uzTa3VR9uSAkt2vwLRtsJZjFKBMjLJA"
+aegis = "8dEjTZ3pzqTvBDyJdgmYQja8danJh5Mv1A886vaYQqVB"
 
 [provider]
 cluster = "devnet"
