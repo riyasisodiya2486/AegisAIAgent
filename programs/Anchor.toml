@@ -6,13 +6,16 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-aegis = "8dEjTZ3pzqTvBDyJdgmYQja8danJh5Mv1A886vaYQqVB"
+aegis = "BDNiWnqSPZgLrZRmMkvgagjqg9tZgVM3s9DdGDerjSeZ"
+
+[programs.localnet]
+aegis = "EnAS1LC6Rgj993Zt16LwYYSNFWEgRL4VbnarbyRQATAQ"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "cargo test"
+test = "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
 [hooks]
