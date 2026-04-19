@@ -19,4 +19,6 @@ dist/
 # Solana keypairs
 id.json
 deploy-keypair.json
-EOF
+EOFtest-ledger/
+test-ledger/
+target/

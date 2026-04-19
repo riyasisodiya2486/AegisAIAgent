@@ -45,6 +45,10 @@ pub fn handler(
     vault.vault_balance = 0;
     vault.total_deposited = 0;
     vault.bump = ctx.bumps.vault;
+    vault.staked_amount = 0;
+    vault.yield_earned = 0;
+    vault.last_yield_ts = clock.unix_timestamp;
+    vault.yield_rate_bps = 800; // Let's start with a default 8% APY for the demo
 
     msg!(
         "Vault created for agent {:?} with daily limit {} lamports",

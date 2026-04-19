@@ -3,6 +3,8 @@ use anchor_lang::prelude::*;
 pub mod instructions;
 pub mod state;
 pub mod errors;
+pub mod utils;
+
 
 // We bring everything into the root of the crate so the macro finds it
 pub use instructions::initialize_vault::*;
@@ -11,6 +13,9 @@ pub use instructions::spend::*;
 pub use instructions::revoke_agent::*;
 pub use instructions::update_limit::*;
 pub use instructions::withdraw::*;
+pub use instructions::stake_idle_funds::*;
+pub use instructions::accrue_yield::*;
+pub use instructions::unstake_for_spend::*;
 
 declare_id!("EnAS1LC6Rgj993Zt16LwYYSNFWEgRL4VbnarbyRQATAQ");
 
@@ -40,5 +45,17 @@ pub mod aegis {
 
     pub fn withdraw(ctx: Context<Withdraw>) -> Result<()> {
         instructions::withdraw::handler(ctx)
+    }
+
+    pub fn stake_idle_funds(ctx: Context<StakeIdleFunds>) -> Result<()> {
+        instructions::stake_idle_funds::handler(ctx)
+    }
+
+    pub fn accrue_yield(ctx: Context<AccrueYield>) -> Result<()> {
+        instructions::accrue_yield::handler(ctx)
+    }
+
+    pub fn unstake_for_spend(ctx: Context<UnstakeForSpend>, amount_needed: u64) -> Result<()> {
+        instructions::unstake_for_spend::handler(ctx, amount_needed)
     }
 }

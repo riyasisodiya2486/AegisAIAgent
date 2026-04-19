@@ -363,7 +363,150 @@ describe("aegis", () => {
     });
   });
 
+    describe("yield flow", () => {
+    const yieldOwner = Keypair.generate();
+    const yieldAgent = Keypair.generate();
+    let yieldVault: PublicKey;
 
+    before(async () => {
+      // Fund wallets
+      for (const kp of [yieldOwner, yieldAgent]) {
+        const sig = await provider.connection.requestAirdrop(
+          kp.publicKey,
+          2 * LAMPORTS_PER_SOL
+        );
+        await provider.connection.confirmTransaction(sig, "confirmed");
+      }
+
+      // Derive vault PDA
+      [yieldVault] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("aegis-vault"),
+          yieldOwner.publicKey.toBuffer(),
+          yieldAgent.publicKey.toBuffer(),
+        ],
+        program.programId
+      );
+
+      // Create vault with 0.1 SOL daily limit
+      await program.methods
+        .initializeVault(new BN(0.1 * LAMPORTS_PER_SOL))
+        .accounts({
+          vault: yieldVault,
+          owner: yieldOwner.publicKey,
+          agentKey: yieldAgent.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([yieldOwner])
+        .rpc();
+
+      // Deposit 1 SOL
+      await program.methods
+        .deposit(new BN(1 * LAMPORTS_PER_SOL))
+        .accounts({
+          vault: yieldVault,
+          owner: yieldOwner.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([yieldOwner])
+        .rpc();
+    });
+
+    it("stakes idle funds above the buffer", async () => {
+      await program.methods
+        .stakeIdleFunds()
+        .accounts({
+          vault: yieldVault,
+          owner: yieldOwner.publicKey,
+        })
+        .signers([yieldOwner])
+        .rpc();
+
+      const vault = await program.account.agentVault.fetch(yieldVault);
+
+      // Vault had 1 SOL, daily limit is 0.1 SOL
+      // Buffer = 1x daily_limit = 0.1 SOL stays liquid
+      // Staked = 0.9 SOL
+      const expectedStaked = new BN(0.9 * LAMPORTS_PER_SOL);
+      const expectedLiquid = new BN(0.1 * LAMPORTS_PER_SOL);
+
+      assert.isTrue(
+        vault.stakedAmount.eq(expectedStaked),
+        `staked_amount should be 0.9 SOL, got ${vault.stakedAmount}`
+      );
+      assert.isTrue(
+        vault.vaultBalance.eq(expectedLiquid),
+        `vault_balance should be 0.1 SOL (buffer), got ${vault.vaultBalance}`
+      );
+      assert.equal(vault.yieldRateBps, 800, "yield rate should be 800 bps (8%)");
+      console.log("  Staked:", vault.stakedAmount.toString(), "lamports");
+      console.log("  Liquid buffer:", vault.vaultBalance.toString(), "lamports");
+    });
+
+    it("accrues yield over time", async () => {
+      const vaultBefore = await program.account.agentVault.fetch(yieldVault);
+      const yieldBefore = vaultBefore.yieldEarned.toNumber();
+
+      // Call accrue_yield — in real time only seconds pass so
+      // yield will be tiny but should be >= 0
+      await program.methods
+        .accrueYield()
+        .accounts({ vault: yieldVault })
+        .rpc();
+
+      const vaultAfter = await program.account.agentVault.fetch(yieldVault);
+      const yieldAfter = vaultAfter.yieldEarned.toNumber();
+
+      assert.isAtLeast(
+        yieldAfter,
+        yieldBefore,
+        "yield_earned should be >= before accrual"
+      );
+      assert.isTrue(
+        vaultAfter.lastYieldTs.gtn(0),
+        "last_yield_ts should be set"
+      );
+      console.log("  Yield earned so far:", yieldAfter, "lamports");
+    });
+
+    it("unstakes enough to cover a spend when liquid balance is low", async () => {
+      // Try to spend more than the liquid buffer (0.2 SOL > 0.1 SOL liquid)
+      const spendTarget = new BN(0.2 * LAMPORTS_PER_SOL);
+
+      // First update the daily limit so the spend is allowed
+      await program.methods
+        .updateLimit(new BN(0.5 * LAMPORTS_PER_SOL))
+        .accounts({
+          vault: yieldVault,
+          owner: yieldOwner.publicKey,
+        })
+        .signers([yieldOwner])
+        .rpc();
+
+      // Call unstake_for_spend to top up liquid balance
+      await program.methods
+        .unstakeForSpend(spendTarget)
+        .accounts({
+          vault: yieldVault,
+          agent: yieldAgent.publicKey,
+        })
+        .signers([yieldAgent])
+        .rpc();
+
+      const vault = await program.account.agentVault.fetch(yieldVault);
+
+      assert.isTrue(
+        vault.vaultBalance.gte(spendTarget),
+        `liquid balance ${vault.vaultBalance} should be >= spend target ${spendTarget}`
+      );
+      console.log(
+        "  After unstake — liquid:",
+        vault.vaultBalance.toString(),
+        "staked:",
+        vault.stakedAmount.toString()
+      );
+    });
+  });
   
 });
 
