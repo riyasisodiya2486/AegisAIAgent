@@ -12,11 +12,15 @@ pub struct AgentVault {
     pub total_deposited: u64,    // 8
     pub bump: u8,                // 1
 
-    // --- Yield tracking fields (new) ---
+    // --- Yield tracking fields ---
     pub staked_amount: u64,      // 8  lamports currently staked
     pub yield_earned: u64,       // 8  total lamports earned as yield
     pub last_yield_ts: i64,      // 8  timestamp of last yield accrual
     pub yield_rate_bps: u16,     // 2  annual yield in basis points (e.g. 800 = 8%)
+
+        // --- Fee tracking ---
+    pub pending_fee: u64,        // 8  lamports owed to protocol, not yet collected
+    pub fee_rate_bps: u16,       // 2  copy of config fee rate, stored for transparency
 }
 
 impl AgentVault {
@@ -32,6 +36,8 @@ impl AgentVault {
         + 8   // staked_amount
         + 8   // yield_earned
         + 8   // last_yield_ts
-        + 2;  // yield_rate_bps
-               // Total: 139 bytes
+        + 2   // yield_rate_bps
+        + 8   // pending_fee
+        + 2;  // fee_rate_bps
+               // Total: 149 bytes
 }

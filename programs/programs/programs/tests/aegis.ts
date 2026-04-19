@@ -26,6 +26,28 @@ describe("aegis", () => {
   // Daily limit: 0.1 SOL expressed in lamports
   const DAILY_LIMIT = new BN(0.1 * LAMPORTS_PER_SOL);
 
+  let configPda: PublicKey;
+
+    before(async () => {
+    [configPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("aegis-protocol-config")],
+      program.programId
+    );
+
+    // Use the owner wallet as both authority and treasury for tests
+    await program.methods
+      .initializeProtocolConfig()
+      .accounts({
+        config: configPda,
+        authority: owner.publicKey,
+        treasury: owner.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+
+    console.log("Protocol config PDA:", configPda.toBase58());
+  });
+
   before(async () => {
     // Derive the PDA using the same seeds as the Rust program
     [vaultPda, vaultBump] = PublicKey.findProgramAddressSync(
@@ -418,6 +440,7 @@ describe("aegis", () => {
         .accounts({
           vault: yieldVault,
           owner: yieldOwner.publicKey,
+          config: configPda,
         })
         .signers([yieldOwner])
         .rpc();
@@ -451,7 +474,10 @@ describe("aegis", () => {
       // yield will be tiny but should be >= 0
       await program.methods
         .accrueYield()
-        .accounts({ vault: yieldVault })
+        .accounts({ 
+          vault: yieldVault,
+          config: configPda,          
+        })
         .rpc();
 
       const vaultAfter = await program.account.agentVault.fetch(yieldVault);
@@ -507,6 +533,182 @@ describe("aegis", () => {
       );
     });
   });
+
+    describe("fee collection", () => {
+    const feeOwner = Keypair.generate();
+    const feeAgent = Keypair.generate();
+    let feeVault: PublicKey;
+
+    before(async () => {
+      // Fund wallets
+      for (const kp of [feeOwner, feeAgent]) {
+        const sig = await provider.connection.requestAirdrop(
+          kp.publicKey,
+          2 * LAMPORTS_PER_SOL
+        );
+        await provider.connection.confirmTransaction(sig, "confirmed");
+      }
+
+      [feeVault] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("aegis-vault"),
+          feeOwner.publicKey.toBuffer(),
+          feeAgent.publicKey.toBuffer(),
+        ],
+        program.programId
+      );
+
+      // Create vault with 0.1 SOL limit
+      await program.methods
+        .initializeVault(new BN(0.1 * LAMPORTS_PER_SOL))
+        .accounts({
+          vault: feeVault,
+          owner: feeOwner.publicKey,
+          agentKey: feeAgent.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([feeOwner])
+        .rpc();
+
+      // Deposit 1 SOL
+      await program.methods
+        .deposit(new BN(1 * LAMPORTS_PER_SOL))
+        .accounts({
+          vault: feeVault,
+          owner: feeOwner.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([feeOwner])
+        .rpc();
+
+      // Stake idle funds (0.9 SOL staked, 0.1 SOL liquid)
+      await program.methods
+        .stakeIdleFunds()
+        .accounts({
+          vault: feeVault,
+          owner: feeOwner.publicKey,
+          config: configPda,
+        })
+        .signers([feeOwner])
+        .rpc();
+    });
+
+    it("accrues yield with correct fee split", async () => {
+      const vaultBefore = await program.account.agentVault.fetch(feeVault);
+
+      // 1. Force a 10-second wait to ensure yield is > 0
+      console.log("    Waiting 10s for yield to accrue (needed for math precision)...");
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+
+      await program.methods
+        .accrueYield()
+        .accounts({
+          vault: feeVault,
+          config: configPda,
+        })
+        .rpc();
+
+      const vaultAfter = await program.account.agentVault.fetch(feeVault);
+
+      const yieldDiff = vaultAfter.yieldEarned.toNumber() - vaultBefore.yieldEarned.toNumber();
+      const feeDiff = vaultAfter.pendingFee.toNumber() - vaultBefore.pendingFee.toNumber();
+      const totalYield = yieldDiff + feeDiff;
+
+      // 2. We only assert if yield actually happened
+      if (totalYield > 0) {
+        const feeRatio = feeDiff / totalYield;
+        // Increase tolerance to 0.03 to handle integer rounding on small test amounts
+        assert.approximately(feeRatio, 0.05, 0.03,
+          `Fee ratio should be ~5%, got ${(feeRatio * 100).toFixed(2)}%`
+        );
+        console.log(`    Yield: ${yieldDiff} lamports, Fee: ${feeDiff} lamports`);
+      } else {
+        // 3. If it's still 0, we provide a clear error message
+        throw new Error("FAIL: 0 yield accrued after 10s. The validator clock is frozen or APR is 0.");
+      }
+
+      assert.equal(vaultAfter.feeRateBps, 500, "fee_rate_bps should be 500 (5%)");
+    });
+
+    
+    it("non-authority cannot collect fees", async () => {
+      const imposter = Keypair.generate();
+      const airdrop = await provider.connection.requestAirdrop(
+        imposter.publicKey,
+        0.1 * LAMPORTS_PER_SOL
+      );
+      await provider.connection.confirmTransaction(airdrop, "confirmed");
+
+      try {
+        await program.methods
+          .collectFees()
+          .accounts({
+            vault: feeVault,
+            config: configPda,
+            authority: imposter.publicKey,
+            treasury: owner.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([imposter])
+          .rpc();
+        assert.fail("Should have thrown ConstraintHasOne");
+      } catch (err: any) {
+        expect(err.error.errorCode.code).to.equal("UnauthorizedOwner");
+        console.log("  Correctly rejected imposter fee collection");
+      }
+    });
+
+    it("protocol authority collects fees successfully", async () => {
+      const treasuryBalBefore = await provider.connection.getBalance(
+        owner.publicKey
+      );
+      const vaultBefore = await program.account.agentVault.fetch(feeVault);
+
+      await program.methods
+        .collectFees()
+        .accounts({
+          vault: feeVault,
+          config: configPda,
+          authority: owner.publicKey,
+          treasury: owner.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      const vaultAfter = await program.account.agentVault.fetch(feeVault);
+
+      // pending_fee must be zeroed after collection
+      assert.isTrue(
+        vaultAfter.pendingFee.eqn(0),
+        "pending_fee should be 0 after collection"
+      );
+
+      console.log(
+        "  Fees collected. pending_fee before:",
+        vaultBefore.pendingFee.toString(),
+        "after:", vaultAfter.pendingFee.toString()
+      );
+    });
+
+    it("collect_fees is idempotent — calling twice does not error", async () => {
+      // pending_fee is already 0, second call should return Ok() gracefully
+      await program.methods
+        .collectFees()
+        .accounts({
+          vault: feeVault,
+          config: configPda,
+          authority: owner.publicKey,
+          treasury: owner.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      const vault = await program.account.agentVault.fetch(feeVault);
+      assert.isTrue(vault.pendingFee.eqn(0), "pending_fee stays 0");
+      console.log("  Second collect_fees call was idempotent — no error");
+    });
+  });
+
   
 });
 

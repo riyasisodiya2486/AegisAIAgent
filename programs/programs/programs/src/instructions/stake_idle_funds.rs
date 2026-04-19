@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::state::AgentVault;
+use crate::state::{AgentVault, ProtocolConfig};
 use crate::errors::AegisError;
 use crate::utils::calculate_yield;
 
@@ -24,6 +24,12 @@ pub struct StakeIdleFunds<'info> {
         has_one = owner @ AegisError::UnauthorizedOwner,
     )]
     pub vault: Account<'info, AgentVault>,
+
+    #[account(
+        seeds = [b"aegis-protocol-config"],
+        bump = config.bump,
+    )]
+    pub config: Account<'info, ProtocolConfig>,
 
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -70,13 +76,15 @@ pub fn handler(ctx: Context<StakeIdleFunds>) -> Result<()> {
         vault.yield_rate_bps = DEFAULT_YIELD_RATE_BPS;
     }
 
+    vault.fee_rate_bps = ctx.accounts.config.fee_rate_bps;
     vault.last_yield_ts = clock.unix_timestamp;
 
     msg!(
-        "Staked {} lamports. Total staked: {}. Yield rate: {} bps",
+        "Staked {} lamports. Total staked: {}. Yield rate: {} bps, Protocol Fee: {} bps",
         stakeable,
         vault.staked_amount,
-        vault.yield_rate_bps
+        vault.yield_rate_bps,
+        vault.fee_rate_bps
     );
 
     Ok(())

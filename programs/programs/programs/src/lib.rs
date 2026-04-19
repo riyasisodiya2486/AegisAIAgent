@@ -16,6 +16,8 @@ pub use instructions::withdraw::*;
 pub use instructions::stake_idle_funds::*;
 pub use instructions::accrue_yield::*;
 pub use instructions::unstake_for_spend::*;
+pub use instructions::initialize_protocol_config::*;
+pub use instructions::collect_fees::*;
 
 declare_id!("EnAS1LC6Rgj993Zt16LwYYSNFWEgRL4VbnarbyRQATAQ");
 
@@ -57,5 +59,13 @@ pub mod aegis {
 
     pub fn unstake_for_spend(ctx: Context<UnstakeForSpend>, amount_needed: u64) -> Result<()> {
         instructions::unstake_for_spend::handler(ctx, amount_needed)
+    }
+
+    pub fn initialize_protocol_config(ctx: Context<InitializeProtocolConfig>) -> Result<()> {
+        instructions::initialize_protocol_config::handler(ctx)
+    }
+
+    pub fn collect_fees(ctx: Context<CollectFees>) -> Result<()> {
+        instructions::collect_fees::collect_fees_logic(ctx)
     }
 }
