@@ -1,0 +1,35 @@
+{
+  "name": "@aegis/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for the Aegis Protocol",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "solana",
+    "anchor",
+    "aegis",
+    "sdk"
+  ],
+  "author": "Riyaa",
+  "license": "ISC",
+  "packageManager": "pnpm@10.33.0",
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@solana/web3.js": "^1.91.8",
+    "bn.js": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.1.5",
+    "@types/node": "^25.6.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
