@@ -14,6 +14,7 @@ import {
 } from "./instructions";
 import { getVaultState } from "./accounts";
 import { findVaultPda } from "./pda";
+import * as fs from "fs";
 
 async function main() {
   const connection = new Connection("http://127.0.0.1:8899", "confirmed");
@@ -26,7 +27,9 @@ async function main() {
   const owner = Keypair.fromSecretKey(Uint8Array.from(raw));
 
   // Generate a fresh agent keypair for this test
-  const agent = Keypair.generate();
+  const agentKeypath = process.env.HOME + "/aegis-agent-keypair.json";
+  const agentRaw = JSON.parse(fs.readFileSync(agentKeypath, "utf-8"));
+  const agent = Keypair.fromSecretKey(Uint8Array.from(agentRaw));
 
   console.log("\nOwner:", owner.publicKey.toBase58());
   console.log("Agent:", agent.publicKey.toBase58());

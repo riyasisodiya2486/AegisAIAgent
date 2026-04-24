@@ -1,8 +1,11 @@
 import * as fs from "fs";
 import * as path from "path";
+import { broadcastLogEntry } from "./log_server";
 
-const LOG_FILE = path.join(__dirname, "..", "agent_log.jsonl");
+const TX_LOG_FILE   = path.join(__dirname, "..", "agent_tx_log.jsonl");
+const RUN_LOG_FILE  = path.join(__dirname, "..", "agent_run_log.jsonl");
 
+// ── Transaction log (one entry per spend attempt) ─────────────────────────────
 export interface TransactionLog {
   timestamp: string;
   status: "SUCCESS" | "DRY_RUN" | "ERROR";
@@ -14,29 +17,59 @@ export interface TransactionLog {
   error?: string;
 }
 
-/**
- * Appends a structured JSON log entry to agent_log.jsonl.
- * Each line is a valid JSON object — easy to tail, stream, or parse.
- */
 export function logTransaction(entry: TransactionLog): void {
-  const line = JSON.stringify(entry) + "\n";
-  fs.appendFileSync(LOG_FILE, line, "utf-8");
+  fs.appendFileSync(TX_LOG_FILE, JSON.stringify(entry) + "\n", "utf-8");
+  broadcastLogEntry(entry);
+  const icon =
+    entry.status === "SUCCESS" ? "[OK]" :
+    entry.status === "DRY_RUN" ? "[DRY]" : "[ERR]";
 
-  // Also print to stdout so the terminal shows activity
-  const icon = entry.status === "SUCCESS" ? "✓" : entry.status === "DRY_RUN" ? "~" : "✗";
   console.log(
-    `[${entry.timestamp}] ${icon} ${entry.status} | ${entry.amount_sol} SOL → ${entry.recipient.slice(0, 8)}... | ${entry.memo}`
+    `${icon} ${entry.timestamp} | ${entry.amount_sol} SOL → ` +
+    `${entry.recipient.slice(0, 8)}... | ${entry.memo}`
   );
 }
 
-/**
- * Reads and returns all log entries (for the frontend to display).
- */
+// ── Run log (one entry per full agent invocation) ─────────────────────────────
+export interface AgentRunLog {
+  run_id: string;
+  timestamp: string;
+  task: string;
+  success: boolean;
+  output: string;
+  steps: Array<{
+    tool: string;
+    input: unknown;
+    output: string;
+    timestamp: string;
+  }>;
+  duration_ms: number;
+  error?: string;
+}
+
+export function logAgentRun(entry: AgentRunLog): void {
+  fs.appendFileSync(RUN_LOG_FILE, JSON.stringify(entry) + "\n", "utf-8");
+  console.log(
+    `\n[RUN ${entry.run_id}] ${entry.success ? "SUCCESS" : "FAILED"} ` +
+    `in ${entry.duration_ms}ms | Steps: ${entry.steps.length}`
+  );
+}
+
+// ── Readers (for API routes on Day 14) ────────────────────────────────────────
 export function readTransactionLog(): TransactionLog[] {
-  if (!fs.existsSync(LOG_FILE)) return [];
+  if (!fs.existsSync(TX_LOG_FILE)) return [];
   return fs
-    .readFileSync(LOG_FILE, "utf-8")
+    .readFileSync(TX_LOG_FILE, "utf-8")
     .split("\n")
     .filter(Boolean)
-    .map((line) => JSON.parse(line));
+    .map((l) => JSON.parse(l));
+}
+
+export function readRunLog(): AgentRunLog[] {
+  if (!fs.existsSync(RUN_LOG_FILE)) return [];
+  return fs
+    .readFileSync(RUN_LOG_FILE, "utf-8")
+    .split("\n")
+    .filter(Boolean)
+    .map((l) => JSON.parse(l));
 }
