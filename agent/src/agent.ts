@@ -3,6 +3,7 @@ dotenv.config();
 
 import { createCheckBudgetTool } from "./tools/check_budget";
 import { createSpendViaAegisTool } from "./tools/spend_via_aegis";
+import { createFetchWithPaymentTool } from "./tools/fetch_with_payment"; 
 
 function validateEnv(): void {
   const required = [
@@ -81,12 +82,34 @@ const TOOL_DEFINITIONS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "FetchWithPayment",
+      description:
+        "Makes an HTTP request to a paid API using x402 protocol. " +
+        "If the server returns 402, automatically pays via the Aegis vault and retries. " +
+        "Use for any URL that may require payment.",
+      parameters: {
+        type: "object",
+        properties: {
+          url:    { type: "string", description: "Full URL of the API endpoint" },
+          method: { type: "string", description: "HTTP method: GET or POST", enum: ["GET","POST"] },
+          body:   { type: "string", description: "JSON body string for POST requests (optional)" },
+          memo:   { type: "string", description: "Reason for this API call" },
+        },
+        required: ["url", "memo"],
+      },
+    },
+  },
 ];
 
 const SYSTEM_PROMPT = `You are an autonomous financial agent for the Aegis protocol on Solana.
 
 STRICT RULES — follow these exactly:
 1. ALWAYS call CheckBudget FIRST before SpendViaAegis — no exceptions.
+- FetchWithPayment: make an HTTP request to a paid API. If the server returns 402,
+  automatically pay via the vault and retry. Use for any URL that may need payment.
 2. Never spend more than the "Remaining today" shown by CheckBudget.
 3. If CheckBudget returns VAULT NOT FOUND or FROZEN — stop, do not call SpendViaAegis.
 4. If a spend is rejected — report it clearly, do not retry.
@@ -132,15 +155,11 @@ async function executeTool(
 ): Promise<string> {
   const checkBudgetTool = createCheckBudgetTool();
   const spendTool       = createSpendViaAegisTool();
+  const fetchWithPaymentTool = createFetchWithPaymentTool();
 
-  if (name === "CheckBudget") {
-    return checkBudgetTool.func("");
-  }
-
-  if (name === "SpendViaAegis") {
-    // Pass args as JSON string for the tool to parse
-    return spendTool.func(JSON.stringify(args));
-  }
+  if (name === "CheckBudget")      return checkBudgetTool.func("");
+  if (name === "SpendViaAegis")    return spendTool.func(JSON.stringify(args));
+  if (name === "FetchWithPayment") return fetchWithPaymentTool.func(JSON.stringify(args));
 
   return `ERROR: Unknown tool: ${name}`;
 }

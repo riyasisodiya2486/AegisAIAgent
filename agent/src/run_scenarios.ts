@@ -176,6 +176,28 @@ async function main() {
     );
   }
 
+    if (!scenarioArg || scenarioArg === "heroDemoX402") {
+    results.push(await runScenario(
+      "6 — Hero demo x402",
+      SCENARIOS.heroDemoX402,
+      (r) => {
+        const calledFetch = r.steps.some(s => s.tool === "FetchWithPayment");
+        const out = r.output.toLowerCase();
+        const hasResult = out.includes("success") || out.includes("dry run") ||
+                          out.includes("compute") || out.includes("paid");
+        return calledFetch && hasResult;
+      }
+    ));
+  }
+
+  if (!scenarioArg || scenarioArg === "x402Inference") {
+    results.push(await runScenario(
+      "7 — x402 inference",
+      SCENARIOS.x402Inference,
+      (r) => r.steps.some(s => s.tool === "FetchWithPayment")
+    ));
+  }
+
   // ── Summary ────────────────────────────────────────────────────────────────
   console.log(`\n${"=".repeat(50)}`);
   console.log("SCENARIO SUMMARY");

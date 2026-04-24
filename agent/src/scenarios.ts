@@ -60,6 +60,21 @@ export const SCENARIOS = {
     and report what could not be paid and why.
     Check budget again between payments and report final remaining balance.
   `.trim(),
+
+  heroDemoX402: `
+    Check my vault budget.
+    Then fetch compute results from the paid API at http://localhost:4402/api/compute.
+    If it requires payment, pay automatically using the Aegis vault.
+    Report the data you received and the transaction signature.
+    Memo: "compute query via x402".
+  `.trim(),
+
+  x402Inference: `
+    Use the paid inference API at http://localhost:4402/api/inference.
+    Send a POST request with body {"prompt": "What is 2+2?"}.
+    Pay automatically if required. Memo: "inference query via x402".
+    Report the model response and transaction details.
+  `.trim(),
 } as const;
 
 export type ScenarioKey = keyof typeof SCENARIOS;
