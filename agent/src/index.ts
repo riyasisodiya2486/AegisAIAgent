@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { runAgent } from "./agent";
 import { logAgentRun } from "./logger";
 import { startLogServer } from "./log_server";
+import { printDryRunReport } from "./dry_run_report";
 
 // Task can come from:
 // 1. CLI arg:  npx ts-node src/index.ts "Pay 0.01 SOL to  for..."
@@ -40,6 +41,10 @@ async function main() {
     duration_ms: duration,
     error: result.error,
   });
+  
+  if (process.env.DRY_RUN === "true") {
+    printDryRunReport(result, TASK);
+  }
 
   // Pretty print the summary
   console.log("\n==============================");

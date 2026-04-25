@@ -1,0 +1,4 @@
+# Agent runtime log files — generated at runtime, not committed
+agent_tx_log.jsonl
+agent_run_log.jsonl
+agent_tool_log.jsonl

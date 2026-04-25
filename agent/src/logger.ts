@@ -73,3 +73,28 @@ export function readRunLog(): AgentRunLog[] {
     .filter(Boolean)
     .map((l) => JSON.parse(l));
 }
+
+
+const TOOL_LOG_FILE = path.join(__dirname, "..", "agent_tool_log.jsonl");
+
+export interface ToolCallLog {
+  timestamp: string;
+  tool: string;
+  input: unknown;
+  output: string;
+  duration_ms: number;
+  success: boolean;
+}
+
+export function logToolCall(entry: ToolCallLog): void {
+  fs.appendFileSync(TOOL_LOG_FILE, JSON.stringify(entry) + "\n", "utf-8");
+}
+
+export function readToolLog(): ToolCallLog[] {
+  if (!fs.existsSync(TOOL_LOG_FILE)) return [];
+  return fs
+    .readFileSync(TOOL_LOG_FILE, "utf-8")
+    .split("\n")
+    .filter(Boolean)
+    .map((l) => JSON.parse(l));
+}

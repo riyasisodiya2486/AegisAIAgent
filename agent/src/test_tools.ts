@@ -17,11 +17,11 @@ async function testSpendWithinLimit() {
   const tool = createSpendViaAegisTool();
 
   // Use a real devnet address as recipient — this is just a test wallet
-  const result = await tool.func({
+  const result = await tool.func(JSON.stringify({
     amount_sol: 0.001,
     recipient_pubkey: "7xKX9Hs9zk7VEkGGFDpNfv7zPQJKPJbQNvvV9eakfLbP",
     memo: "Test spend — Day 7 tool validation",
-  });
+  }));
   console.log(result);
 
   if (result.includes("ERROR")) {
@@ -35,11 +35,11 @@ async function testSpendOverLimit() {
   console.log("--- Testing SpendViaAegis (over limit — should be rejected) ---");
   const tool = createSpendViaAegisTool();
 
-  const result = await tool.func({
-    amount_sol: 999,    // Way over any daily limit
+  const result = await tool.func(JSON.stringify({
+    amount_sol: 999,
     recipient_pubkey: "7xKX9Hs9zk7VEkGGFDpNfv7zPQJKPJbQNvvV9eakfLbP",
     memo: "This should be rejected by budget check",
-  });
+  }));
   console.log(result);
 
   if (result.includes("ERROR") || result.includes("exceed")) {

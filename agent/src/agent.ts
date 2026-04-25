@@ -1,9 +1,12 @@
 import * as dotenv from "dotenv";
 dotenv.config();
 
+import { logToolCall } from "./logger";
+import { checkAgentGasBalance } from "./rpc_utils";
 import { createCheckBudgetTool } from "./tools/check_budget";
 import { createSpendViaAegisTool } from "./tools/spend_via_aegis";
 import { createFetchWithPaymentTool } from "./tools/fetch_with_payment"; 
+import { createAgentClient } from "./config/wallet";
 
 function validateEnv(): void {
   const required = [
@@ -153,15 +156,38 @@ async function executeTool(
   name: string,
   args: Record<string, unknown>
 ): Promise<string> {
-  const checkBudgetTool = createCheckBudgetTool();
-  const spendTool       = createSpendViaAegisTool();
+  const checkBudgetTool      = createCheckBudgetTool();
+  const spendTool            = createSpendViaAegisTool();
   const fetchWithPaymentTool = createFetchWithPaymentTool();
 
-  if (name === "CheckBudget")      return checkBudgetTool.func("");
-  if (name === "SpendViaAegis")    return spendTool.func(JSON.stringify(args));
-  if (name === "FetchWithPayment") return fetchWithPaymentTool.func(JSON.stringify(args));
+  const start = Date.now();
+  let result  = "";
+  let success = true;
 
-  return `ERROR: Unknown tool: ${name}`;
+  try {
+    if (name === "CheckBudget")      result = await checkBudgetTool.func("");
+    else if (name === "SpendViaAegis")    result = await spendTool.func(JSON.stringify(args));
+    else if (name === "FetchWithPayment") result = await fetchWithPaymentTool.func(JSON.stringify(args));
+    else result = `ERROR: Unknown tool: ${name}`;
+
+    if (result.startsWith("ERROR") || result.startsWith("SETUP ERROR")) {
+      success = false;
+    }
+  } catch (err: any) {
+    result  = `EXCEPTION: ${err.message}`;
+    success = false;
+  }
+
+  logToolCall({
+    timestamp:   new Date().toISOString(),
+    tool:        name,
+    input:       args,
+    output:      result,
+    duration_ms: Date.now() - start,
+    success,
+  });
+
+  return result;
 }
 
 export async function runAgent(
@@ -170,6 +196,13 @@ export async function runAgent(
 ): Promise<AgentRunResult> {
   try {
     validateEnv();
+    try {
+        const { agentKeypair } = createAgentClient();
+        const gasWarning = await checkAgentGasBalance(agentKeypair.publicKey);
+        if (gasWarning) console.warn(`[Agent] ${gasWarning}`);
+      } catch {
+        // Non-fatal — proceed even if balance check fails
+      }
   } catch (err: any) {
     return { output: err.message, steps: [], success: false, error: err.message };
   }
