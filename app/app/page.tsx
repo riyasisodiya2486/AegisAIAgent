@@ -1,40 +1,82 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { PageShell } from "@/components/PageShell";
-import { ConnectGuard } from "@/components/ConnectGuard";
-import { Badge } from "@/components/ui/badge";
+import { WalletMultiButton } from "@/components/WalletButton";
+import { NavBar } from "@/components/NavBar";
 
 export default function HomePage() {
-  const { connected } = useWallet();
-  const router = useRouter();
+  const { connected }          = useWallet();
+  const router                 = useRouter();
+  const [mounted, setMounted]  = useState(false);
 
-  useEffect(() => {
-    if (connected) router.push("/dashboard");
-  }, [connected, router]);
+  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => { if (connected) router.push("/dashboard"); }, [connected, router]);
 
   return (
-    <PageShell>
-      {!connected && (
-        <div className="flex flex-col items-center justify-center min-h-[70vh] text-center gap-6 -mt-8">
-          <Badge variant="outline" className="text-xs">Built on Solana Devnet</Badge>
-          <h1 className="text-4xl font-bold tracking-tight max-w-2xl">
-            Secure bank accounts for <span className="text-primary">AI agents</span>
+    <div className="min-h-screen bg-[#0a0a0f]">
+      <NavBar />
+
+      {/* Background glow */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-20%] left-[50%] -translate-x-1/2 w-[800px] h-[500px] bg-violet-600/8 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[10%] right-[10%] w-[400px] h-[400px] bg-indigo-600/6 rounded-full blur-[100px]" />
+      </div>
+
+      <main className="relative max-w-screen-xl mx-auto px-6">
+        <div className="flex flex-col items-center justify-center min-h-[82vh] text-center gap-7">
+
+          {/* Pill badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-violet-500/25 bg-violet-500/8 text-xs text-violet-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+            Built on Solana Devnet
+          </div>
+
+          {/* Headline */}
+          <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight max-w-3xl">
+            Secure bank accounts for{" "}
+            <span className="bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
+              AI agents
+            </span>
           </h1>
-          <p className="text-muted-foreground text-lg max-w-xl leading-relaxed">
-            Aegis gives AI agents a smart contract vault with spending limits,
-            yield on idle funds, and a one-click kill switch for the human owner.
+
+          <p className="text-white/45 text-lg max-w-xl leading-relaxed">
+            Give your autonomous agents a smart contract vault with daily spending limits,
+            yield on idle funds, and a one-click kill switch.
           </p>
-          <div className="flex items-center gap-3 flex-wrap justify-center mt-2">
-            {["🔒 Daily spend limits", "📈 Yield on idle funds", "⚡ One-click kill switch"].map(f => (
-              <div key={f} className="flex items-center gap-2 text-sm text-muted-foreground border rounded-lg px-3 py-2">{f}</div>
+
+          {/* Feature pills */}
+          <div className="flex flex-wrap justify-center gap-2 mt-1">
+            {[
+              { icon: "🔒", text: "Daily spend limits" },
+              { icon: "📈", text: "Yield on idle funds" },
+              { icon: "⚡", text: "One-click kill switch" },
+              { icon: "🤖", text: "x402 payments" },
+            ].map(({ icon, text }) => (
+              <div
+                key={text}
+                className="flex items-center gap-1.5 text-sm text-white/50 border border-white/8 bg-white/3 rounded-xl px-3 py-1.5"
+              >
+                <span>{icon}</span> {text}
+              </div>
             ))}
           </div>
-          <ConnectGuard message="Connect to get started" />
+
+          {/* CTA */}
+          <div className="mt-2">
+            {mounted ? (
+              <WalletMultiButton />
+            ) : (
+              <div className="h-10 w-36 rounded-lg bg-violet-600/30 animate-pulse" />
+            )}
+          </div>
+
+          <p className="text-xs text-white/20">
+            Phantom · Solflare · Backpack
+          </p>
         </div>
-      )}
-    </PageShell>
+      </main>
+    </div>
   );
 }

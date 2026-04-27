@@ -1,8 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { WalletMultiButton } from "@/components/WalletButton";
 
 interface Props {
   children: React.ReactNode;
@@ -10,28 +10,37 @@ interface Props {
 }
 
 export function ConnectGuard({ children, message }: Props) {
-  const { connected } = useWallet();
+  const { connected }        = useWallet();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-72 h-44 rounded-2xl bg-white/5 animate-pulse" />
+      </div>
+    );
+  }
 
   if (!connected) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Card className="w-full max-w-md text-center">
-          <CardHeader>
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
-              <span className="text-2xl">🔐</span>
-            </div>
-            <CardTitle>Connect your wallet</CardTitle>
-            <CardDescription>
-              {message ?? "Connect your Solana wallet to access Aegis."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-center">
-              <WalletMultiButton />
-            </div>
-            <p className="text-xs text-muted-foreground mt-4">Supports Phantom and Solflare</p>
-          </CardContent>
-        </Card>
+        <div className="w-full max-w-sm rounded-2xl border border-white/8 bg-white/3 backdrop-blur p-8 text-center space-y-5">
+          <div className="w-14 h-14 rounded-2xl bg-violet-500/15 border border-violet-500/20 flex items-center justify-center mx-auto text-2xl">
+            🔐
+          </div>
+          <div>
+            <h2 className="text-base font-semibold">Connect your wallet</h2>
+            <p className="text-sm text-white/40 mt-1">
+              {message ?? "Connect to access Aegis"}
+            </p>
+          </div>
+          <div className="flex justify-center">
+            <WalletMultiButton />
+          </div>
+          <p className="text-xs text-white/25">Phantom · Solflare</p>
+        </div>
       </div>
     );
   }
