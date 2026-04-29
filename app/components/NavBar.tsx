@@ -33,6 +33,10 @@ export function NavBar() {
             <Link href="/create-vault" className="text-white/45 hover:text-white transition-colors">
               Create Vault
             </Link>
+            {/* Added Activity Link for Step 6 */}
+            <Link href="/activity" className="text-white/45 hover:text-white transition-colors">
+              Activity
+            </Link>
           </nav>
         )}
 

@@ -8,6 +8,7 @@ import { PageShell } from "@/components/PageShell";
 import { ConnectGuard } from "@/components/ConnectGuard";
 import { useVaultState } from "@/hooks/useVaultState";
 import { loadPrimaryVault } from "@/lib/vaultStorage";
+import { ActivityFeed } from "@/components/feed/ActivityFeed";
 
 function MetricCard({ label, value, sub }: { label: string; value?: string; sub?: string }) {
   return (
@@ -46,7 +47,7 @@ export default function DashboardPage() {
           {/* Header */}
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-2xl font-bold">Dashboard</h1>
+              <h1 className="text-2xl font-bold text-white">Dashboard</h1>
               <p className="text-sm text-white/35 mt-0.5 font-mono">
                 {publicKey?.toBase58().slice(0, 8)}...{publicKey?.toBase58().slice(-8)}
               </p>
@@ -159,6 +160,12 @@ export default function DashboardPage() {
               )}
             </>
           )}
+
+          {/* Activity Feed — Added here for Step 6 */}
+          <div className="mt-4 pt-4">
+             <ActivityFeed />
+          </div>
+
         </div>
       </ConnectGuard>
     </PageShell>

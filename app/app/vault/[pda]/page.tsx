@@ -14,6 +14,7 @@ import { useVaultActions } from "@/hooks/useVaultActions";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { toast } from "sonner";
+import { ActivityFeed } from "@/components/feed/ActivityFeed";
 
 export default function VaultPage() {
   const { pda }       = useParams<{ pda: string }>();
@@ -174,6 +175,10 @@ export default function VaultPage() {
               </div>
             </div>
           )}
+          {/* ACTIVITY FEED  */}
+          <div className="mt-6">
+            <ActivityFeed />
+          </div>
         </div>
       </ConnectGuard>
     </PageShell>

@@ -5,6 +5,8 @@ import { randomUUID } from "crypto";
 import { runAgent, AgentRunResult } from "./agent";
 import { logAgentRun } from "./logger";
 import { SCENARIOS, ScenarioKey } from "./scenarios";
+ import { startLogServer } from "./log_server";
+
 
 interface ScenarioResult {
   name: string;
@@ -46,7 +48,9 @@ async function runScenario(
   return { name, passed, steps: result.steps.length, duration_ms: duration };
 }
 
+
 async function main() {
+  startLogServer()
   const isDryRun    = process.env.DRY_RUN === "true";
   const scenarioArg = process.argv[2] as ScenarioKey | undefined;
 
