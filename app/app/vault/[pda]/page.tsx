@@ -1,203 +1,181 @@
 "use client";
 
-import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
-import { deposit, updateDailyLimit } from "@aegis/sdk";
-import { TxButton } from "@/components/TxButton";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAegisClient } from "@/hooks/useAegisClient";
+import { PageShell } from "@/components/PageShell";
+import { ConnectGuard } from "@/components/ConnectGuard";
+import { DepositPanel } from "@/components/vault/DepositPanel";
+import { LimitSlider } from "@/components/vault/LimitSlider";
+import { YieldDisplay } from "@/components/vault/YieldDisplay";
+import { SpendProgress } from "@/components/vault/SpendProgress";
 import { useVaultState } from "@/hooks/useVaultState";
-import { Wallet, TrendingUp, Shield, Copy, RefreshCcw } from "lucide-react";
+import { useVaultActions } from "@/hooks/useVaultActions";
+import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
 import { toast } from "sonner";
 
 export default function VaultPage() {
-  const { pda } = useParams<{ pda: string }>();
+  const { pda }       = useParams<{ pda: string }>();
   const { publicKey } = useWallet();
-  const client = useAegisClient();
 
   const vaultPda = (() => {
     try { return new PublicKey(pda); } catch { return null; }
   })();
 
   const { vault, loading, error, refresh } = useVaultState(vaultPda);
-  const [depositAmt, setDepositAmt] = useState("0.5");
-  const [newLimit, setNewLimit] = useState("");
 
-  const handleDeposit = async (): Promise<string | void> => {
-    if (!client || !publicKey || !vault) throw new Error("Not ready");
-    const { signature } = await deposit(
-      client,
-      publicKey,
-      vault.raw.agentKey,
-      parseFloat(depositAmt)
-    );
-    await refresh();
-    return signature;
-  };
+  // Derive agent key from vault state (stored on-chain)
+  const agentKey = vault ? vault.raw.agentKey : null;
 
-  const handleUpdateLimit = async (): Promise<string | void> => {
-    if (!client || !publicKey || !vault) throw new Error("Not ready");
-    const sig = await updateDailyLimit(
-      client,
-      publicKey,
-      vault.raw.agentKey,
-      parseFloat(newLimit)
-    );
-    await refresh();
-    return sig;
-  };
+  const actions = useVaultActions(vaultPda, agentKey);
 
-  if (error) {
+  if (!vaultPda) {
     return (
-      <div className="container py-10">
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </div>
+      <PageShell>
+        <div className="text-center py-20">
+          <p className="text-white/40">Invalid vault address.</p>
+          <Link href="/dashboard" className="text-violet-400 text-sm mt-2 inline-block">
+            ← Back to dashboard
+          </Link>
+        </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="container max-w-5xl py-10 space-y-8">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight">Vault Dashboard</h1>
-            {vault && (
-              <Badge variant={vault.isFrozen ? "destructive" : "outline"} className="h-6">
-                {vault.isFrozen ? "Frozen" : "Active"}
-              </Badge>
-            )}
-          </div>
-          <p className="text-sm font-mono text-muted-foreground mt-1 break-all">{pda}</p>
-        </div>
-        <button 
-           onClick={() => refresh()} 
-           className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
-        >
-          <RefreshCcw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-          Refresh Data
-        </button>
-      </div>
+    <PageShell>
+      <ConnectGuard>
+        <div className="max-w-4xl mx-auto space-y-6">
 
-      {/* Metric Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[
-          { label: "Vault Balance", value: vault ? `${vault.vaultBalanceSol.toFixed(4)} SOL` : null, icon: Wallet },
-          { label: "Daily Limit", value: vault ? `${vault.dailyLimitSol.toFixed(4)} SOL` : null, icon: Shield },
-          { label: "Spent Today", value: vault ? `${vault.spentTodaySol.toFixed(4)} SOL` : null, icon: TrendingUp },
-          { label: "Yield (APY)", value: vault ? `${vault.yieldRatePercent.toFixed(2)}%` : null, icon: TrendingUp },
-        ].map((item, i) => (
-          <Card key={i} className="border-border/50 bg-card/50">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{item.label}</CardTitle>
-              <item.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading && !vault ? (
-                <Skeleton className="h-7 w-24" />
-              ) : (
-                <div className="text-2xl font-bold">{item.value ?? "0.0000"}</div>
+          {/* Header */}
+          <div className="flex items-start justify-between flex-wrap gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Link
+                  href="/dashboard"
+                  className="text-xs text-white/30 hover:text-white/60 transition-colors"
+                >
+                  ← Dashboard
+                </Link>
+              </div>
+              <h1 className="text-2xl font-bold">Vault Configuration</h1>
+              <p className="font-mono text-[11px] text-white/25 mt-0.5 break-all">
+                {pda}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {vault && (
+                <span className={[
+                  "text-xs px-3 py-1 rounded-full font-medium border",
+                  vault.isFrozen
+                    ? "bg-red-500/15 text-red-400 border-red-500/25"
+                    : "bg-emerald-500/12 text-emerald-400 border-emerald-500/20",
+                ].join(" ")}>
+                  {vault.isFrozen ? "⚠ Frozen" : "● Active"}
+                </span>
               )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Progress Card */}
-      {vault && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex justify-between mb-2 text-sm">
-              <span className="text-muted-foreground">Daily Spend Allowance</span>
-              <span className="font-medium">{vault.dailySpendProgressPct}% Used</span>
+              <button
+                onClick={refresh}
+                className="p-2 rounded-xl bg-white/4 hover:bg-white/8 transition-colors text-white/40 hover:text-white/70"
+                title="Refresh"
+              >
+                ↻
+              </button>
             </div>
-            <Progress value={vault.dailySpendProgressPct} className="h-2" />
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Deposit Panel */}
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle>Deposit Funds</CardTitle>
-            <CardDescription>Add SOL to increase your agent's capacity.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Amount (SOL)</Label>
-              <Input 
-                type="number" 
-                value={depositAmt} 
-                onChange={(e) => setDepositAmt(e.target.value)} 
-              />
-            </div>
-            <TxButton 
-              label="Confirm Deposit" 
-              onClick={handleDeposit} 
-              className="w-full" 
-              disabled={!vault} 
-            />
-          </CardContent>
-        </Card>
-
-        {/* Limit Panel */}
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle>Update Daily Limit</CardTitle>
-            <CardDescription>Adjust the 24h spending ceiling.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>New Limit (SOL)</Label>
-              <Input 
-                type="number" 
-                placeholder="e.g. 1.5" 
-                value={newLimit} 
-                onChange={(e) => setNewLimit(e.target.value)} 
-              />
-            </div>
-            <TxButton 
-              label="Update Limit" 
-              onClick={handleUpdateLimit} 
-              variant="outline" 
-              className="w-full" 
-              disabled={!vault || !newLimit} 
-            />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Copy Helper for Agent .env */}
-      <Alert className="bg-muted/30 border-dashed">
-        <div className="flex items-center justify-between w-full gap-4">
-          <div className="flex-1 overflow-hidden">
-            <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Agent Environment Config</p>
-            <code className="text-xs break-all block p-2 bg-background rounded border">
-              VAULT_PDA_ADDRESS={pda}
-            </code>
           </div>
-          <button 
-            onClick={() => {
-              navigator.clipboard.writeText(pda);
-              toast.success("Address copied to clipboard");
-            }}
-            className="p-2 hover:bg-background rounded-md transition-colors"
-          >
-            <Copy className="h-4 w-4" />
-          </button>
+
+          {/* Error state */}
+          {error && (
+            <div className="rounded-2xl border border-red-500/20 bg-red-500/8 px-5 py-4">
+              <p className="text-sm text-red-400">{error}</p>
+            </div>
+          )}
+
+          {/* Loading skeleton */}
+          {loading && !vault && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="rounded-2xl border border-white/6 bg-white/3 p-6">
+                  <Skeleton className="h-4 w-32 mb-3" />
+                  <Skeleton className="h-8 w-24 mb-4" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Main content grid */}
+          {vault && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Left column */}
+              <div className="space-y-4">
+                <DepositPanel
+                  vault={vault}
+                  onDeposit={actions.deposit}
+                  onSuccess={refresh}
+                />
+                <LimitSlider
+                  vault={vault}
+                  onUpdateLimit={actions.updateLimit}
+                  onSuccess={refresh}
+                />
+              </div>
+
+              {/* Right column */}
+              <div className="space-y-4">
+                <SpendProgress vault={vault} />
+                <YieldDisplay
+                  vault={vault}
+                  onStake={actions.stake}
+                  onAccrueYield={actions.accrueYield}
+                  onSuccess={refresh}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Agent info card */}
+          {vault && (
+            <div className="rounded-2xl border border-white/5 bg-white/2 p-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <p className="text-white/30 uppercase tracking-wide mb-1">Agent address</p>
+                  <p className="font-mono text-white/50 break-all">
+                    {vault.agentAddress}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-white/30 uppercase tracking-wide mb-1">Owner address</p>
+                  <p className="font-mono text-white/50 break-all">
+                    {vault.ownerAddress}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-white/5">
+                <p className="text-[11px] text-white/25 uppercase tracking-wide mb-2">
+                  Update your agent .env
+                </p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-[11px] bg-black/30 px-3 py-2 rounded-lg text-white/40 font-mono break-all">
+                    VAULT_PDA_ADDRESS={pda}
+                  </code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`VAULT_PDA_ADDRESS=${pda}`);
+                      toast.success("Copied to clipboard");
+                    }}
+                    className="shrink-0 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-white/40 hover:text-white/70 transition-all"
+                  >
+                    copy
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      </Alert>
-    </div>
+      </ConnectGuard>
+    </PageShell>
   );
 }
