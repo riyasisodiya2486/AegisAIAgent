@@ -52,6 +52,7 @@ export function useAgentLogs(): UseAgentLogsResult {
   const pollRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const mountedRef = useRef(true);
   const wsActiveRef = useRef(false);
+  const wsFailCountRef = useRef(0);
 
   const fetchLogs = useCallback(async () => {
     // Don't poll if WebSocket is connected and delivering data
@@ -146,8 +147,8 @@ export function useAgentLogs(): UseAgentLogsResult {
         }
       };
 
-      ws.onerror = () => {
-        // Silently handle — fall back to polling
+     ws.onerror = () => {
+        wsFailCountRef.current += 1;
         wsActiveRef.current = false;
       };
 
@@ -180,10 +181,11 @@ export function useAgentLogs(): UseAgentLogsResult {
 
     // Retry WS connection every 30s if not connected
     const wsRetryInterval = setInterval(() => {
+      const backoffMs = Math.min(30_000 * Math.pow(2, wsFailCountRef.current), 120_000);
       if (!wsActiveRef.current && mountedRef.current) {
         tryWebSocket();
       }
-    }, 30_000);
+    }, 60_000);
 
     return () => {
       mountedRef.current = false;

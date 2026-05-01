@@ -54,3 +54,21 @@
   border: 1px solid #2a2a4a !important;
   border-radius: 16px !important;
 }
+
+/* Ensure wallet adapter modal works on mobile */
+.wallet-adapter-modal-wrapper {
+  max-width: calc(100vw - 2rem) !important;
+  margin: 1rem !important;
+}
+
+/* Prevent horizontal scroll from mono text */
+.font-mono { word-break: break-all; }
+
+/* Smooth scrolling */
+html { scroll-behavior: smooth; }
+
+/* Better focus rings */
+*:focus-visible {
+  outline: 2px solid rgba(124, 58, 237, 0.6);
+  outline-offset: 2px;
+}

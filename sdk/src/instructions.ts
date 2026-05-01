@@ -7,6 +7,7 @@ import {
 import BN from "bn.js";
 import { AegisClient } from "./client";
 import { findVaultPda } from "./pda";
+import * as anchor from "@coral-xyz/anchor";
 
 function solToLamports(sol: number): BN {
   return new BN(Math.round(sol * LAMPORTS_PER_SOL));
@@ -78,18 +79,44 @@ export async function spend(
   recipientPubkey: PublicKey,
   amountSol: number
 ): Promise<string> {
-  const sig = await client.program.methods
-    .spend(solToLamports(amountSol))
-    .accounts({
-      vault: vaultPda,
-      agent: agentKeypair.publicKey,
-      recipient: recipientPubkey,
-      systemProgram: SystemProgram.programId,
-    } as any)
-    .signers([agentKeypair])
-    .rpc();
+  const amountLamports = solToLamports(amountSol);
+  
 
-  return sig;
+  // Build the transaction manually to avoid the toString error
+    const tx = await client.program.methods
+    .spend(new anchor.BN(amountLamports.toString())) 
+    .accountsPartial({                               
+      vault:         vaultPda,
+      agent:         agentKeypair.publicKey,
+      recipient:     recipientPubkey,
+      systemProgram: SystemProgram.programId,
+    })
+    .transaction();
+
+  // Set recent blockhash manually
+  const { blockhash, lastValidBlockHeight } =
+    await client.connection.getLatestBlockhash("confirmed");
+  tx.recentBlockhash    = blockhash;
+  tx.feePayer           = agentKeypair.publicKey;
+
+  // Sign with agent keypair
+  tx.sign(agentKeypair);
+
+  // Send and confirm
+  const rawTx = tx.serialize();
+  const signature = await client.connection.sendRawTransaction(rawTx, {
+    skipPreflight: false,
+    preflightCommitment: "confirmed",
+  });
+
+  if (!signature) throw new Error("No signature returned");
+  
+  await client.connection.confirmTransaction(
+    { signature, blockhash, lastValidBlockHeight },
+    "confirmed"
+  );
+
+  return signature;
 }
 
 // ─── Owner controls ───────────────────────────────────────────────────────────
