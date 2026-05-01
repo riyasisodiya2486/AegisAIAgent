@@ -15,20 +15,26 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ActivityFeed } from "@/components/feed/ActivityFeed";
+import { KillSwitch } from "@/components/vault/KillSwitch";
+import { WithdrawPanel } from "@/components/vault/WithdrawPanel";
+import { VaultStatusBanner } from "@/components/vault/VaultStatusBanner";
 
 export default function VaultPage() {
-  const { pda }       = useParams<{ pda: string }>();
+  const { pda } = useParams<{ pda: string }>();
   const { publicKey } = useWallet();
 
   const vaultPda = (() => {
-    try { return new PublicKey(pda); } catch { return null; }
+    try {
+      return new PublicKey(pda);
+    } catch {
+      return null;
+    }
   })();
 
   const { vault, loading, error, refresh } = useVaultState(vaultPda);
 
   // Derive agent key from vault state (stored on-chain)
   const agentKey = vault ? vault.raw.agentKey : null;
-
   const actions = useVaultActions(vaultPda, agentKey);
 
   if (!vaultPda) {
@@ -36,7 +42,10 @@ export default function VaultPage() {
       <PageShell>
         <div className="text-center py-20">
           <p className="text-white/40">Invalid vault address.</p>
-          <Link href="/dashboard" className="text-violet-400 text-sm mt-2 inline-block">
+          <Link
+            href="/dashboard"
+            className="text-violet-400 text-sm mt-2 inline-block"
+          >
             ← Back to dashboard
           </Link>
         </div>
@@ -47,45 +56,32 @@ export default function VaultPage() {
   return (
     <PageShell>
       <ConnectGuard>
-        <div className="max-w-4xl mx-auto space-y-6">
-
-          {/* Header */}
+        <div className="max-w-4xl mx-auto space-y-5">
+          {/* Back link + header */}
           <div className="flex items-start justify-between flex-wrap gap-4">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Link
-                  href="/dashboard"
-                  className="text-xs text-white/30 hover:text-white/60 transition-colors"
-                >
-                  ← Dashboard
-                </Link>
-              </div>
-              <h1 className="text-2xl font-bold">Vault Configuration</h1>
-              <p className="font-mono text-[11px] text-white/25 mt-0.5 break-all">
+              <Link
+                href="/dashboard"
+                className="text-xs text-white/30 hover:text-white/55 transition-colors"
+              >
+                ← Dashboard
+              </Link>
+              <h1 className="text-2xl font-bold mt-1">Vault Configuration</h1>
+              <p className="font-mono text-[11px] text-white/20 mt-0.5 break-all">
                 {pda}
               </p>
             </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              {vault && (
-                <span className={[
-                  "text-xs px-3 py-1 rounded-full font-medium border",
-                  vault.isFrozen
-                    ? "bg-red-500/15 text-red-400 border-red-500/25"
-                    : "bg-emerald-500/12 text-emerald-400 border-emerald-500/20",
-                ].join(" ")}>
-                  {vault.isFrozen ? "⚠ Frozen" : "● Active"}
-                </span>
-              )}
-              <button
-                onClick={refresh}
-                className="p-2 rounded-xl bg-white/4 hover:bg-white/8 transition-colors text-white/40 hover:text-white/70"
-                title="Refresh"
-              >
-                ↻
-              </button>
-            </div>
+            <button
+              onClick={refresh}
+              className="p-2 rounded-xl bg-white/4 hover:bg-white/8 text-white/35 hover:text-white/60 transition-all"
+              title="Refresh vault state"
+            >
+              ↻
+            </button>
           </div>
+
+          {/* Frozen banner — full width */}
+          <VaultStatusBanner vault={vault} />
 
           {/* Error state */}
           {error && (
@@ -97,20 +93,22 @@ export default function VaultPage() {
           {/* Loading skeleton */}
           {loading && !vault && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[1,2,3,4].map(i => (
-                <div key={i} className="rounded-2xl border border-white/6 bg-white/3 p-6">
-                  <Skeleton className="h-4 w-32 mb-3" />
-                  <Skeleton className="h-8 w-24 mb-4" />
-                  <Skeleton className="h-10 w-full" />
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="rounded-2xl border border-white/6 bg-white/3 p-6"
+                >
+                  <div className="h-4 w-32 bg-white/8 rounded animate-pulse mb-3" />
+                  <div className="h-8 w-24 bg-white/6 rounded animate-pulse mb-4" />
+                  <div className="h-10 w-full bg-white/5 rounded animate-pulse" />
                 </div>
               ))}
             </div>
           )}
 
-          {/* Main content grid */}
+          {/* Main 2-col grid */}
           {vault && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Left column */}
               <div className="space-y-4">
                 <DepositPanel
                   vault={vault}
@@ -123,8 +121,6 @@ export default function VaultPage() {
                   onSuccess={refresh}
                 />
               </div>
-
-              {/* Right column */}
               <div className="space-y-4">
                 <SpendProgress vault={vault} />
                 <YieldDisplay
@@ -137,48 +133,68 @@ export default function VaultPage() {
             </div>
           )}
 
-          {/* Agent info card */}
+          {/* Activity feed */}
+          {vault && <ActivityFeed />}
+
+          {/* Emergency section */}
+          {vault && (
+            <>
+              <div className="relative flex items-center gap-3 py-2">
+                <div className="flex-1 h-px bg-red-500/15" />
+                <span className="text-[11px] text-red-400/50 uppercase tracking-widest shrink-0">
+                  Danger Zone
+                </span>
+                <div className="flex-1 h-px bg-red-500/15" />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <KillSwitch
+                  vault={vault}
+                  onRevoke={actions.revoke}
+                  onSuccess={refresh}
+                />
+                <WithdrawPanel vault={vault} onWithdraw={actions.withdraw} />
+              </div>
+            </>
+          )}
+
+          {/* Agent info */}
           {vault && (
             <div className="rounded-2xl border border-white/5 bg-white/2 p-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div>
-                  <p className="text-white/30 uppercase tracking-wide mb-1">Agent address</p>
-                  <p className="font-mono text-white/50 break-all">
+                  <p className="text-white/25 uppercase tracking-wide mb-1">
+                    Agent key
+                  </p>
+                  <p className="font-mono text-white/40 break-all">
                     {vault.agentAddress}
                   </p>
                 </div>
                 <div>
-                  <p className="text-white/30 uppercase tracking-wide mb-1">Owner address</p>
-                  <p className="font-mono text-white/50 break-all">
+                  <p className="text-white/25 uppercase tracking-wide mb-1">
+                    Owner
+                  </p>
+                  <p className="font-mono text-white/40 break-all">
                     {vault.ownerAddress}
                   </p>
                 </div>
               </div>
-              <div className="mt-4 pt-4 border-t border-white/5">
-                <p className="text-[11px] text-white/25 uppercase tracking-wide mb-2">
-                  Update your agent .env
-                </p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 text-[11px] bg-black/30 px-3 py-2 rounded-lg text-white/40 font-mono break-all">
-                    VAULT_PDA_ADDRESS={pda}
-                  </code>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`VAULT_PDA_ADDRESS=${pda}`);
-                      toast.success("Copied to clipboard");
-                    }}
-                    className="shrink-0 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-white/40 hover:text-white/70 transition-all"
-                  >
-                    copy
-                  </button>
-                </div>
+              <div className="mt-4 pt-4 border-t border-white/4 flex items-center gap-2">
+                <code className="flex-1 text-[11px] bg-black/30 px-3 py-2 rounded-lg text-white/35 font-mono break-all">
+                  VAULT_PDA_ADDRESS={pda}
+                </code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`VAULT_PDA_ADDRESS=${pda}`);
+                    toast.success("Copied");
+                  }}
+                  className="shrink-0 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-white/35 hover:text-white/60 transition-all"
+                >
+                  copy
+                </button>
               </div>
             </div>
           )}
-          {/* ACTIVITY FEED  */}
-          <div className="mt-6">
-            <ActivityFeed />
-          </div>
         </div>
       </ConnectGuard>
     </PageShell>

@@ -8,119 +8,107 @@ import { AgentRunCard } from "./AgentRunCard";
 type Tab = "transactions" | "runs";
 
 export function ActivityFeed() {
-  const { transactions, runs, connected, loading, refresh } = useAgentLogs();
+  const { transactions, runs, connected, agentOnline, loading, refresh } = useAgentLogs();
   const [tab, setTab] = useState<Tab>("transactions");
 
-  const isEmpty =
-    tab === "transactions" ? transactions.length === 0 : runs.length === 0;
+  const isEmpty = tab === "transactions"
+    ? transactions.length === 0
+    : runs.length === 0;
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950 border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
-      
+    <div className="rounded-2xl border border-white/6 bg-white/2 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 pb-4">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <h3 className="text-lg font-semibold text-white tracking-tight">
-            Activity Feed
-          </h3>
-
-          {/* Live indicator */}
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/5 border border-white/5">
-            <div className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">
-              {connected ? "Live" : "Polling"}
+          <h3 className="font-semibold text-sm">Activity Feed</h3>
+          <div className="flex items-center gap-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${
+              connected    ? "bg-emerald-400 animate-pulse" :
+              agentOnline  ? "bg-blue-400" : "bg-white/15"
+            }`} />
+            <span className="text-[10px] text-white/25">
+              {connected ? "Live" : agentOnline ? "Polling" : "Agent offline"}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-medium text-white/20">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-white/20">
             {tab === "transactions" ? transactions.length : runs.length} entries
           </span>
-          <button 
+          <button
             onClick={refresh}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/50 transition-colors"
-          >
-            <span className="block hover:rotate-180 transition-transform duration-500">↻</span>
-          </button>
+            className="w-7 h-7 rounded-lg bg-white/4 hover:bg-white/8 flex items-center justify-center text-white/30 hover:text-white/55 transition-all text-xs"
+          >↻</button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex px-6 border-b border-white/5">
+      <div className="flex border-b border-white/5">
         {(["transactions", "runs"] as Tab[]).map(t => (
           <button
-            key={`tab-${t}`} // Improved key
+            key={t}
             onClick={() => setTab(t)}
-            className={`relative flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-all ${
-              tab === t ? "text-violet-400" : "text-white/30 hover:text-white/50"
-            }`}
+            className={[
+              "flex-1 py-2.5 text-xs font-medium transition-all",
+              tab === t
+                ? "text-white border-b-2 border-violet-500"
+                : "text-white/30 hover:text-white/50",
+            ].join(" ")}
           >
             {t === "transactions" ? "Transactions" : "Agent Runs"}
-            {tab === t && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
+            {t === "transactions" && transactions.length > 0 && (
+              <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-violet-500/18 text-violet-300 text-[10px]">
+                {transactions.length}
+              </span>
             )}
           </button>
         ))}
       </div>
 
-      {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-        {loading && isEmpty ? (
-          <div className="space-y-4 animate-pulse">
-            {[1, 2, 3].map(i => (
-              <div key={`skeleton-${i}`} className="h-24 w-full bg-white/5 rounded-2xl border border-white/5" />
-            ))}
-          </div>
-        ) : isEmpty ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="h-16 w-16 flex items-center justify-center rounded-2xl bg-white/5 text-2xl mb-4 border border-white/5">
-              {tab === "transactions" ? "💸" : "🤖"}
+      {/* Content */}
+      <div className="max-h-[480px] overflow-y-auto">
+        {isEmpty ? (
+          <div className="py-14 text-center space-y-3">
+            <div className="text-3xl">{tab === "transactions" ? "💸" : "🤖"}</div>
+            <div>
+              <p className="text-sm text-white/35 font-medium">
+                {tab === "transactions" ? "No transactions yet" : "No agent runs yet"}
+              </p>
+              <p className="text-xs text-white/20 mt-1">
+                {agentOnline
+                  ? "Agent is online but has no activity yet."
+                  : "Start the agent to see activity here."}
+              </p>
             </div>
-            <h4 className="text-white font-medium mb-1">
-              {tab === "transactions" ? "No transactions yet" : "No agent runs yet"}
-            </h4>
-            <p className="text-sm text-white/30 max-w-[240px] mb-8">
-              {tab === "transactions"
-                ? "Run the agent to see transactions appear here in real time."
-                : "Agent run logs will appear here when the agent is active."}
-            </p>
-
-            <div className="group relative">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-lg blur opacity-20" />
-              <code className="relative block p-3 rounded-lg bg-black border border-white/10 text-[10px] font-mono text-violet-300">
-                DRY_RUN=false npx ts-node src/index.ts
-              </code>
-            </div>
+            {!agentOnline && (
+              <div className="inline-block mx-auto px-4 py-2 rounded-xl bg-white/3 border border-white/6">
+                <code className="text-[11px] text-white/25">
+                  cd agent && npx ts-node src/index.ts
+                </code>
+              </div>
+            )}
           </div>
         ) : tab === "transactions" ? (
-          <div className="space-y-3">
-            {transactions.map((tx, i) => {
-              // Ensure key is unique even if signatures are identical/missing
-              const txKey = tx.signature ? `tx-${tx.signature}-${i}` : `tx-fallback-${i}`;
-              return <TransactionRow key={txKey} tx={tx} isNew={i === 0} />;
-            })}
+          <div className="divide-y divide-white/3">
+            {transactions.map((tx, i) => (
+              <TransactionRow key={`${tx.signature}-${i}`} tx={tx} isNew={i === 0} />
+            ))}
           </div>
         ) : (
-          <div className="space-y-4">
-            {runs.map((run, i) => {
-              // Ensure key is unique for agent runs
-              const runKey = run.run_id ? `run-${run.run_id}-${i}` : `run-fallback-${i}`;
-              return <AgentRunCard key={runKey} run={run} />;
-            })}
+          <div className="p-3 space-y-2">
+            {runs.map((run, i) => (
+              <AgentRunCard key={`${run.run_id}-${i}`} run={run} />
+            ))}
           </div>
         )}
       </div>
 
-      {/* Footer */}
       {!isEmpty && (
-        <div className="p-4 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
-          <span className="text-[10px] font-medium text-white/20 uppercase tracking-tighter">
-            Showing last {tab === "transactions" ? transactions.length : runs.length} entries
-          </span>
-          <span className="text-[10px] font-mono text-white/20">
-            {connected ? "STABLE_WS_CONNECTED" : "FALLBACK_POLLING_ACTIVE"}
-          </span>
+        <div className="px-5 py-2 border-t border-white/4">
+          <p className="text-[10px] text-white/15 text-center">
+            {connected ? "WebSocket live" : "Polling every 15s · Start agent to enable live updates"}
+          </p>
         </div>
       )}
     </div>

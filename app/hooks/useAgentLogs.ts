@@ -31,68 +31,99 @@ export interface AgentRunLog {
 
 interface UseAgentLogsResult {
   transactions: TransactionLog[];
-  runs: AgentRunLog[];
-  connected: boolean;
-  loading: boolean;
-  refresh: () => void;
+  runs:         AgentRunLog[];
+  connected:    boolean;
+  agentOnline:  boolean;
+  loading:      boolean;
+  refresh:      () => void;
 }
 
-const LOG_SERVER_WS = process.env.NEXT_PUBLIC_LOG_SERVER_URL?.replace("http", "ws") ?? "ws://localhost:3001";
-const POLL_INTERVAL = 5000;
+// Use a much longer polling interval — only poll when WS is not available
+const POLL_INTERVAL_MS = 15_000; // 15 seconds
 
 export function useAgentLogs(): UseAgentLogsResult {
-  // FIX: Added explicit types to useState to avoid never[]
   const [transactions, setTransactions] = useState<TransactionLog[]>([]);
-  const [runs, setRuns] = useState<AgentRunLog[]>([]);
-  const [connected, setConnected] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [runs,         setRuns]         = useState<AgentRunLog[]>([]);
+  const [connected,    setConnected]    = useState(false);
+  const [agentOnline,  setAgentOnline]  = useState(false);
+  const [loading,      setLoading]      = useState(false);
 
-  // FIX: Added proper types for refs
-  const wsRef = useRef<WebSocket | null>(null);
-  const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const wsRef      = useRef<WebSocket | null>(null);
+  const pollRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const mountedRef = useRef(true);
+  const wsActiveRef = useRef(false);
 
-  // Fetch from API route (polling fallback)
   const fetchLogs = useCallback(async () => {
+    // Don't poll if WebSocket is connected and delivering data
+    if (wsActiveRef.current) return;
+
     try {
-      const [txRes, runRes] = await Promise.all([
-        fetch("/api/logs/transactions", { cache: "no-store" }),
-        fetch("/api/logs/runs", { cache: "no-store" }),
+      const controller = new AbortController();
+      const timeoutId  = setTimeout(() => controller.abort(), 3000);
+
+      const [txRes, runRes] = await Promise.allSettled([
+        fetch("/api/logs/transactions", {
+          cache: "no-store",
+          signal: controller.signal,
+        }),
+        fetch("/api/logs/runs", {
+          cache: "no-store",
+          signal: controller.signal,
+        }),
       ]);
 
+      clearTimeout(timeoutId);
       if (!mountedRef.current) return;
 
-      if (txRes.ok) {
-        const txData = await txRes.json();
-        setTransactions([...txData].reverse().slice(0, 50));
+      let gotData = false;
+
+      if (txRes.status === "fulfilled" && txRes.value.ok) {
+        const data = await txRes.value.json();
+        if (Array.isArray(data)) {
+          setTransactions([...data].reverse().slice(0, 50));
+          gotData = true;
+        }
       }
-      if (runRes.ok) {
-        const runData = await runRes.json();
-        setRuns([...runData].reverse().slice(0, 20));
+
+      if (runRes.status === "fulfilled" && runRes.value.ok) {
+        const data = await runRes.value.json();
+        if (Array.isArray(data)) {
+          setRuns([...data].reverse().slice(0, 20));
+        }
       }
-    } catch (err) {
-      console.error("Failed to fetch logs:", err);
+
+      // Only mark agent online if we got actual data from the API
+      setAgentOnline(gotData);
+    } catch {
+      // Silently ignore — agent server not running is expected
+      if (mountedRef.current) setAgentOnline(false);
     } finally {
       if (mountedRef.current) setLoading(false);
     }
   }, []);
 
-  // FIX: startPolling needed to be declared before connectWs to avoid reference errors
   const startPolling = useCallback(() => {
-    fetchLogs();
     if (pollRef.current) clearInterval(pollRef.current);
-    pollRef.current = setInterval(fetchLogs, POLL_INTERVAL);
+    pollRef.current = setInterval(fetchLogs, POLL_INTERVAL_MS);
   }, [fetchLogs]);
 
-  const connectWs = useCallback(() => {
+  const tryWebSocket = useCallback(() => {
     if (typeof window === "undefined") return;
+    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+
+    const wsUrl = (process.env.NEXT_PUBLIC_LOG_SERVER_URL ?? "http://localhost:3001")
+      .replace(/^http/, "ws");
 
     try {
-      const ws = new WebSocket(LOG_SERVER_WS);
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        if (mountedRef.current) setConnected(true);
+        if (!mountedRef.current) return;
+        wsActiveRef.current = true;
+        setConnected(true);
+        setAgentOnline(true);
+        // Cancel polling — WS handles updates
         if (pollRef.current) {
           clearInterval(pollRef.current);
           pollRef.current = null;
@@ -102,33 +133,37 @@ export function useAgentLogs(): UseAgentLogsResult {
       ws.onmessage = (event) => {
         if (!mountedRef.current) return;
         try {
-          const msg = JSON.parse(event.data);
+          const msg = JSON.parse(event.data as string);
           if (msg.type === "snapshot") {
-            setTransactions([...(msg.transactions ?? [])].reverse());
+            const txs = (msg.transactions ?? []) as TransactionLog[];
+            setTransactions([...txs].reverse());
             setLoading(false);
           } else if (msg.type === "entry" && msg.data) {
-            setTransactions(prev => [msg.data, ...prev].slice(0, 50));
+            setTransactions(prev => [msg.data as TransactionLog, ...prev].slice(0, 50));
           }
-        } catch (e) {
-          console.warn("Malformed WS message", e);
+        } catch {
+          // ignore malformed messages
         }
       };
 
       ws.onerror = () => {
-        if (mountedRef.current) setConnected(false);
+        // Silently handle — fall back to polling
+        wsActiveRef.current = false;
       };
 
       ws.onclose = () => {
         if (!mountedRef.current) return;
-        setConnected(false);
+        wsActiveRef.current = false;
         wsRef.current = null;
-        startPolling(); // Fallback to polling
+        setConnected(false);
+        // Restart polling as fallback
+        startPolling();
       };
-    } catch (e) {
-      console.error("WS Connection failed", e);
+    } catch {
+      // WebSocket constructor failed — just poll
       startPolling();
     }
-  }, [startPolling]); // FIX: Added startPolling to dependency array
+  }, [startPolling]);
 
   const refresh = useCallback(() => {
     fetchLogs();
@@ -136,16 +171,28 @@ export function useAgentLogs(): UseAgentLogsResult {
 
   useEffect(() => {
     mountedRef.current = true;
-    connectWs();
+
+    // Try WS first — if it fails, polling kicks in via onclose
+    tryWebSocket();
+
+    // Also do one immediate fetch for runs data
     fetchLogs();
+
+    // Retry WS connection every 30s if not connected
+    const wsRetryInterval = setInterval(() => {
+      if (!wsActiveRef.current && mountedRef.current) {
+        tryWebSocket();
+      }
+    }, 30_000);
 
     return () => {
       mountedRef.current = false;
-      // FIX: Optional chaining for cleanup
-      wsRef.current?.close();
+      wsActiveRef.current = false;
+      clearInterval(wsRetryInterval);
+      if (wsRef.current)   wsRef.current.close();
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [connectWs, fetchLogs]); // FIX: Added missing dependencies
+  }, []);
 
-  return { transactions, runs, connected, loading, refresh };
+  return { transactions, runs, connected, agentOnline, loading, refresh };
 }

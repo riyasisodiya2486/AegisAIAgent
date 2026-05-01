@@ -138,7 +138,9 @@ Example input: {"amount_sol": 0.005, "recipient_pubkey": "7xKX9Hs...", "memo": "
           recipientPubkey,
           input.amount_sol
         );
-
+        if (!signature) {
+          throw new Error("The spend function returned undefined. Check if your Agent has SOL or if the Program is deployed.");
+        }
         const updated   = await getVaultStateByAddress(client, vaultPda);
         const remaining = updated?.remainingTodaySol ?? 0;
 
