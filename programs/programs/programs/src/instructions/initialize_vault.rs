@@ -39,6 +39,7 @@ pub fn handler(
 
     vault.owner = ctx.accounts.owner.key();
     vault.agent_key = ctx.accounts.agent_key.key();
+    vault.original_agent_key = ctx.accounts.agent_key.key(); // Store original key for PDA seeds
     vault.daily_limit = daily_limit;
     vault.spent_today = 0;
     vault.last_reset_ts = clock.unix_timestamp;

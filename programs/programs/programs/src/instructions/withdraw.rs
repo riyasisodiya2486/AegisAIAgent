@@ -10,7 +10,7 @@ pub struct Withdraw<'info> {
         seeds = [
             b"aegis-vault",
             owner.key().as_ref(),
-            vault.agent_key.as_ref(),
+            vault.original_agent_key.as_ref(),
         ],
         bump = vault.bump,
         has_one = owner @ AegisError::UnauthorizedOwner,

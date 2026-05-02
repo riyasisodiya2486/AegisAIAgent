@@ -136,15 +136,18 @@ export function useAgentLogs(): UseAgentLogsResult {
         try {
           const msg = JSON.parse(event.data as string);
           if (msg.type === "snapshot") {
-            const txs = (msg.transactions ?? []) as TransactionLog[];
-            setTransactions([...txs].reverse());
+            setTransactions([...(msg.transactions ?? [])].reverse());
             setLoading(false);
-          } else if (msg.type === "entry" && msg.data) {
-            setTransactions(prev => [msg.data as TransactionLog, ...prev].slice(0, 50));
+          } else if (msg.type === "entry") {
+            if (msg.data?._type === "run") {
+              // It's an agent run broadcast
+              setRuns(prev => [msg.data, ...prev].slice(0, 20));
+            } else {
+              // It's a transaction
+              setTransactions(prev => [msg.data, ...prev].slice(0, 50));
+            }
           }
-        } catch {
-          // ignore malformed messages
-        }
+        } catch {}
       };
 
      ws.onerror = () => {

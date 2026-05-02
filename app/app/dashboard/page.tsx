@@ -7,11 +7,8 @@ import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
 import { ConnectGuard } from "@/components/ConnectGuard";
 import { ActivityFeed } from "@/components/feed/ActivityFeed";
-import { YieldChart } from "@/components/vault/YieldChart";
-import { VaultSummaryCard } from "@/components/vault/VaultSummaryCard";
 import { useVaultState } from "@/hooks/useVaultState";
 import { loadPrimaryVault } from "@/lib/vaultStorage";
-import { VaultMetricsSkeleton } from "@/components/VaultSkeletons";
 
 function MetricCard({ label, value, sub, accent }: {
   label: string; value?: string; sub?: string; accent?: boolean;
@@ -37,17 +34,18 @@ function DashboardContent() {
     if (!publicKey) return;
     const saved = loadPrimaryVault(publicKey.toBase58());
     if (saved) {
-      try {
-        setVaultPda(new PublicKey(saved));
-        setPdaStr(saved);
-      } catch {}
+      try { setVaultPda(new PublicKey(saved)); setPdaStr(saved); } catch {}
     }
   }, [publicKey?.toBase58()]);
 
-  const { vault, loading } = useVaultState(vaultPda);
+  const { vault, loading, error, errorMsg } = useVaultState(vaultPda);
+
+  const showNoVault = !loading && !vault && !pdaStr;
+  const showError   = !loading && !vault && pdaStr && error;
 
   return (
     <div className="space-y-6">
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
@@ -70,8 +68,45 @@ function DashboardContent() {
         </div>
       </div>
 
-      {/* No vault stored in local storage */}
-      {!loading && !vault && !pdaStr && (
+      {/* Error state — vault exists in localStorage but can't be loaded */}
+      {showError && (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/6 p-5 space-y-3">
+          <div className="flex items-start gap-3">
+            <span className="text-amber-400 text-lg shrink-0">⚠</span>
+            <div>
+              <p className="text-sm font-medium text-amber-400">Vault not accessible</p>
+              <p className="text-xs text-amber-400/60 mt-1">{errorMsg}</p>
+            </div>
+          </div>
+          {error === "not_found" && (
+            <div className="text-xs text-white/30 space-y-1 pl-8">
+              <p>This usually means one of:</p>
+              <p>• The local validator was restarted with <code>--reset</code> (chain wiped)</p>
+              <p>• The Anchor program was redeployed (needs new vault)</p>
+              <p>• The vault was closed via "Withdraw All"</p>
+            </div>
+          )}
+          <div className="flex gap-2 pl-8">
+            <Link href="/create-vault"
+              className="px-3 py-1.5 rounded-lg bg-violet-600 text-xs text-white hover:bg-violet-500 transition-all">
+              Create New Vault
+            </Link>
+            <button
+              onClick={() => {
+                if (publicKey) {
+                  localStorage.removeItem(`aegis_vault_${publicKey.toBase58()}`);
+                  window.location.reload();
+                }
+              }}
+              className="px-3 py-1.5 rounded-lg border border-white/10 text-xs text-white/40 hover:text-white/60 transition-all">
+              Clear Saved Vault
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* No vault at all */}
+      {showNoVault && (
         <div className="rounded-2xl border border-dashed border-white/8 p-16 text-center space-y-4">
           <div className="text-4xl">🏦</div>
           <div>
@@ -85,29 +120,35 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* Loading State: We have a PDA address but data hasn't arrived from RPC */}
+      {/* Loading skeleton */}
       {loading && !vault && pdaStr && (
-        <VaultMetricsSkeleton />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-pulse">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="rounded-2xl border border-white/5 bg-white/3 p-5 space-y-3">
+              <div className="h-2.5 w-16 bg-white/8 rounded-full" />
+              <div className="h-7 w-24 bg-white/6 rounded-lg" />
+            </div>
+          ))}
+        </div>
       )}
 
-      {/* Data Loaded State */}
+      {/* Metrics — shown when vault loads */}
       {vault && (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <MetricCard label="Vault Balance"
               value={`${vault.vaultBalanceSol.toFixed(4)} SOL`}
-              sub={vault.stakedAmountSol > 0 ? `+ ${vault.stakedAmountSol.toFixed(4)} staked` : undefined} />
-            <MetricCard label="Daily Limit"
-              value={`${vault.dailyLimitSol.toFixed(4)} SOL`} />
+              sub={(vault.stakedAmountSol ?? 0) > 0 ? `+ ${vault.stakedAmountSol.toFixed(4)} staked` : undefined} />
+            <MetricCard label="Daily Limit" value={`${vault.dailyLimitSol.toFixed(4)} SOL`} />
             <MetricCard label="Spent Today"
               value={`${vault.spentTodaySol.toFixed(4)} SOL`}
               sub={`${vault.dailySpendProgressPct}% of limit`} />
             <MetricCard label="Yield Earned"
               value={`${vault.yieldEarnedSol.toFixed(6)} SOL`}
-              sub={vault.yieldRatePercent ? `${vault.yieldRatePercent.toFixed(2)}% APY` : undefined}
-              accent />
+              sub={`${vault.yieldRatePercent.toFixed(2)}% APY`} accent />
           </div>
 
+          {/* Progress bar */}
           <div className="rounded-2xl border border-white/6 bg-white/3 p-5 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -123,13 +164,10 @@ function DashboardContent() {
               <span className="text-sm font-semibold text-white/70">{vault.dailySpendProgressPct}%</span>
             </div>
             <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-700 ${
-                  vault.dailySpendProgressPct >= 90 ? "bg-red-500"   :
-                  vault.dailySpendProgressPct >= 60 ? "bg-amber-500" : "bg-violet-500"
-                }`}
-                style={{ width: `${vault.dailySpendProgressPct}%` }}
-              />
+              <div className={`h-full rounded-full transition-all duration-700 ${
+                vault.dailySpendProgressPct >= 90 ? "bg-red-500"   :
+                vault.dailySpendProgressPct >= 60 ? "bg-amber-500" : "bg-violet-500"
+              }`} style={{ width: `${vault.dailySpendProgressPct}%` }} />
             </div>
             <div className="flex justify-between text-xs text-white/25">
               <span>{vault.spentTodaySol.toFixed(4)} SOL spent</span>
@@ -137,23 +175,19 @@ function DashboardContent() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2"><YieldChart vault={vault} /></div>
-            <div><VaultSummaryCard vault={vault} pdaStr={pdaStr ?? ""} loading={loading} /></div>
-          </div>
-
-          <ActivityFeed />
-
           {pdaStr && (
             <p className="text-center text-xs text-white/15 font-mono">
               {pdaStr.slice(0,8)}···{pdaStr.slice(-8)}{" · "}
-              <Link href={`/vault/${pdaStr}`} className="...">
+              <Link href={`/vault/${pdaStr}`} className="text-violet-400/50 hover:text-violet-400 transition-colors">
                 Open vault →
               </Link>
             </p>
           )}
         </>
       )}
+
+      {/* Activity feed — ALWAYS shown, regardless of vault state */}
+      <ActivityFeed />
     </div>
   );
 }

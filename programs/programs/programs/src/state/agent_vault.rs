@@ -5,6 +5,7 @@ use anchor_lang::prelude::*;
 pub struct AgentVault {
     pub owner: Pubkey,           // 32
     pub agent_key: Pubkey,       // 32
+    pub original_agent_key: Pubkey,   // never changes, used for PDA seeds
     pub daily_limit: u64,        // 8  (lamports)
     pub spent_today: u64,        // 8
     pub last_reset_ts: i64,      // 8
@@ -27,6 +28,7 @@ impl AgentVault {
     pub const LEN: usize = 8    // discriminator
         + 32  // owner
         + 32  // agent_key
+        + 32  // original_agent_key
         + 8   // daily_limit
         + 8   // spent_today
         + 8   // last_reset_ts
@@ -38,6 +40,6 @@ impl AgentVault {
         + 8   // last_yield_ts
         + 2   // yield_rate_bps
         + 8   // pending_fee
-        + 2;  // fee_rate_bps
-               // Total: 149 bytes
+        + 2;   // fee_rate_bps
+               // Total: 181 bytes
 }

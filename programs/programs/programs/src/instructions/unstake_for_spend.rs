@@ -10,7 +10,7 @@ pub struct UnstakeForSpend<'info> {
         seeds = [
             b"aegis-vault",
             vault.owner.as_ref(),
-            vault.agent_key.as_ref(),
+            vault.original_agent_key.as_ref(),
         ],
         bump = vault.bump,
     )]

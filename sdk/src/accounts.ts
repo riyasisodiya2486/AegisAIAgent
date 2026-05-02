@@ -43,8 +43,45 @@ function lamportsToSol(lamports: BN | number): number {
 }
 
 /**
+ * Common formatting logic for raw vault data.
+ * Handles the "Frozen Vault" logic by falling back to originalAgentKey.
+ */
+function formatVaultState(raw: any, vaultPda: PublicKey): VaultState {
+  const vaultBalance = lamportsToSol(raw.vaultBalance);
+  const dailyLimit   = lamportsToSol(raw.dailyLimit);
+  const spentToday   = lamportsToSol(raw.spentToday);
+
+  // KEY FIX: If agentKey is zero (frozen), use originalAgentKey for UI display
+  const isFrozen = raw.agentKey.equals(PublicKey.default);
+  const displayAgentKey = isFrozen ? raw.originalAgentKey : raw.agentKey;
+
+  return {
+    raw,
+    address: vaultPda,
+    ownerAddress: raw.owner.toBase58(),
+    agentAddress: displayAgentKey.toBase58(),
+    isFrozen,
+    vaultBalanceSol: vaultBalance,
+    dailyLimitSol: dailyLimit,
+    spentTodaySol: spentToday,
+    remainingTodaySol: Math.max(0, dailyLimit - spentToday),
+    stakedAmountSol: lamportsToSol(raw.stakedAmount),
+    yieldEarnedSol: lamportsToSol(raw.yieldEarned),
+    pendingFeeSol: lamportsToSol(raw.pendingFee),
+    totalDepositedSol: lamportsToSol(raw.totalDeposited),
+    yieldRateBps: raw.yieldRateBps,
+    yieldRatePercent: raw.yieldRateBps / 100,
+    feeRateBps: raw.feeRateBps,
+    feeRatePercent: raw.feeRateBps / 100,
+    dailySpendProgressPct:
+      dailyLimit > 0
+        ? Math.min(100, Math.round((spentToday / dailyLimit) * 100))
+        : 0,
+  };
+}
+
+/**
  * Fetches and formats the vault state for a given (owner, agent) pair.
- * Returns null if the vault does not exist yet.
  */
 export async function getVaultState(
   client: AegisClient,
@@ -55,34 +92,7 @@ export async function getVaultState(
 
   try {
     const raw = await client.program.account.agentVault.fetch(vaultPda);
-
-    const vaultBalance = lamportsToSol(raw.vaultBalance);
-    const dailyLimit   = lamportsToSol(raw.dailyLimit);
-    const spentToday   = lamportsToSol(raw.spentToday);
-
-    return {
-      raw,
-      address: vaultPda,
-      ownerAddress: raw.owner.toBase58(),
-      agentAddress: raw.agentKey.toBase58(),
-      isFrozen: raw.agentKey.equals(PublicKey.default),
-      vaultBalanceSol: vaultBalance,
-      dailyLimitSol: dailyLimit,
-      spentTodaySol: spentToday,
-      remainingTodaySol: Math.max(0, dailyLimit - spentToday),
-      stakedAmountSol: lamportsToSol(raw.stakedAmount),
-      yieldEarnedSol: lamportsToSol(raw.yieldEarned),
-      pendingFeeSol: lamportsToSol(raw.pendingFee),
-      totalDepositedSol: lamportsToSol(raw.totalDeposited),
-      yieldRateBps: raw.yieldRateBps,
-      yieldRatePercent: raw.yieldRateBps / 100,
-      feeRateBps: raw.feeRateBps,
-      feeRatePercent: raw.feeRateBps / 100,
-      dailySpendProgressPct:
-        dailyLimit > 0
-          ? Math.min(100, Math.round((spentToday / dailyLimit) * 100))
-          : 0,
-    };
+    return formatVaultState(raw, vaultPda);
   } catch {
     return null;
   }
@@ -90,7 +100,7 @@ export async function getVaultState(
 
 /**
  * Fetches vault state directly from a known PDA address.
- * Useful when you already have the PDA and don't need to re-derive it.
+ * Use this when the agent key on-chain might be zeroed out (Frozen).
  */
 export async function getVaultStateByAddress(
   client: AegisClient,
@@ -98,8 +108,9 @@ export async function getVaultStateByAddress(
 ): Promise<VaultState | null> {
   try {
     const raw = await client.program.account.agentVault.fetch(vaultPda);
-    return getVaultState(client, raw.owner, raw.agentKey);
-  } catch {
+    return formatVaultState(raw, vaultPda);
+  } catch (err) {
+    console.error("Error fetching vault by address:", err);
     return null;
   }
 }
@@ -127,8 +138,6 @@ export async function getProtocolConfig(
 
 /**
  * Subscribes to vault state changes via WebSocket.
- * Calls onUpdate whenever the vault account is modified on-chain.
- * Returns an unsubscribe function.
  */
 export function subscribeToVault(
   client: AegisClient,

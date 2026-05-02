@@ -49,10 +49,9 @@ export interface AgentRunLog {
 
 export function logAgentRun(entry: AgentRunLog): void {
   fs.appendFileSync(RUN_LOG_FILE, JSON.stringify(entry) + "\n", "utf-8");
-  console.log(
-    `\n[RUN ${entry.run_id}] ${entry.success ? "SUCCESS" : "FAILED"} ` +
-    `in ${entry.duration_ms}ms | Steps: ${entry.steps.length}`
-  );
+  // Broadcast runs too — not just transactions
+  broadcastLogEntry({ ...entry, _type: "run" });
+  console.log(`\n[RUN ${entry.run_id}] ${entry.success ? "SUCCESS" : "FAILED"} in ${entry.duration_ms}ms`);
 }
 
 // ── Readers (for API routes on Day 14) ────────────────────────────────────────

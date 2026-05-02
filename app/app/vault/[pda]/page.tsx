@@ -9,10 +9,10 @@ import { DepositPanel } from "@/components/vault/DepositPanel";
 import { LimitSlider } from "@/components/vault/LimitSlider";
 import { YieldDisplay } from "@/components/vault/YieldDisplay";
 import { SpendProgress } from "@/components/vault/SpendProgress";
-import { useVaultState } from "@/hooks/useVaultState";
 import { useVaultActions } from "@/hooks/useVaultActions";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useVaultState } from "@/hooks/useVaultState";
 import { ActivityFeed } from "@/components/feed/ActivityFeed";
 import { KillSwitch } from "@/components/vault/KillSwitch";
 import { WithdrawPanel } from "@/components/vault/WithdrawPanel";
@@ -30,7 +30,7 @@ export default function VaultPage() {
     }
   })();
 
-  const { vault, loading, error, refresh } = useVaultState(vaultPda);
+  const { vault, loading, error, errorMsg, refresh } = useVaultState(vaultPda);
 
   const agentKey = vault ? vault.raw.agentKey : null;
   const actions = useVaultActions(vaultPda, agentKey);
@@ -80,9 +80,25 @@ export default function VaultPage() {
 
           <VaultStatusBanner vault={vault} />
 
-          {error && (
-            <div className="rounded-2xl border border-red-500/20 bg-red-500/8 px-5 py-4">
-              <p className="text-sm text-red-400">{error}</p>
+          {/* Error state */}
+          {!loading && !vault && error && (
+            <div className="rounded-2xl border border-red-500/20 bg-red-500/6 p-6 space-y-3">
+              <p className="text-sm font-medium text-red-400">
+                {error === "not_found"   ? "Vault not found on-chain"      :
+                error === "wrong_program" ? "Program ID mismatch"           :
+                "Could not load vault"}
+              </p>
+              <p className="text-xs text-red-400/55">{errorMsg}</p>
+              {error === "not_found" && (
+                <div className="text-xs text-white/30 space-y-1">
+                  <p>If the validator was reset, redeploy the program and create a new vault.</p>
+                  <p>If you froze and withdrew this vault, it no longer exists on-chain.</p>
+                </div>
+              )}
+              <Link href="/dashboard"
+                className="inline-block px-4 py-2 rounded-xl bg-white/6 text-xs text-white/60 hover:text-white transition-all border border-white/8">
+                ← Back to dashboard
+              </Link>
             </div>
           )}
 

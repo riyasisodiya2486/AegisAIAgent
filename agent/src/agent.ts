@@ -7,6 +7,7 @@ import { createCheckBudgetTool } from "./tools/check_budget";
 import { createSpendViaAegisTool } from "./tools/spend_via_aegis";
 import { createFetchWithPaymentTool } from "./tools/fetch_with_payment"; 
 import { createAgentClient } from "./config/wallet";
+import { ensureAgentHasGas } from "./config/wallet";
 
 function validateEnv(): void {
   const required = [
@@ -195,6 +196,7 @@ export async function runAgent(
   _retryOnFailure = true
 ): Promise<AgentRunResult> {
   try {
+    await ensureAgentHasGas().catch(() => {});
     validateEnv();
     try {
         const { agentKeypair } = createAgentClient();
