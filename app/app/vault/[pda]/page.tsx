@@ -11,7 +11,6 @@ import { YieldDisplay } from "@/components/vault/YieldDisplay";
 import { SpendProgress } from "@/components/vault/SpendProgress";
 import { useVaultState } from "@/hooks/useVaultState";
 import { useVaultActions } from "@/hooks/useVaultActions";
-import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ActivityFeed } from "@/components/feed/ActivityFeed";
@@ -33,7 +32,6 @@ export default function VaultPage() {
 
   const { vault, loading, error, refresh } = useVaultState(vaultPda);
 
-  // Derive agent key from vault state (stored on-chain)
   const agentKey = vault ? vault.raw.agentKey : null;
   const actions = useVaultActions(vaultPda, agentKey);
 
@@ -80,19 +78,17 @@ export default function VaultPage() {
             </button>
           </div>
 
-          {/* Frozen banner — full width */}
           <VaultStatusBanner vault={vault} />
 
-          {/* Error state */}
           {error && (
             <div className="rounded-2xl border border-red-500/20 bg-red-500/8 px-5 py-4">
               <p className="text-sm text-red-400">{error}</p>
             </div>
           )}
 
-          {/* Loading skeleton */}
+          {/* Loading skeleton - Updated gap */}
           {loading && !vault && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
@@ -106,9 +102,9 @@ export default function VaultPage() {
             </div>
           )}
 
-          {/* Main 2-col grid */}
+          {/* Main 2-col grid - Updated gap */}
           {vault && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <div className="space-y-4">
                 <DepositPanel
                   vault={vault}
@@ -133,7 +129,6 @@ export default function VaultPage() {
             </div>
           )}
 
-          {/* Activity feed */}
           {vault && <ActivityFeed />}
 
           {/* Emergency section */}
@@ -147,7 +142,8 @@ export default function VaultPage() {
                 <div className="flex-1 h-px bg-red-500/15" />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Danger grid - Updated gap */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 <KillSwitch
                   vault={vault}
                   onRevoke={actions.revoke}
@@ -161,7 +157,8 @@ export default function VaultPage() {
           {/* Agent info */}
           {vault && (
             <div className="rounded-2xl border border-white/5 bg-white/2 p-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              {/* Info grid - Updated gap */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-xs">
                 <div>
                   <p className="text-white/25 uppercase tracking-wide mb-1">
                     Agent key

@@ -134,12 +134,12 @@ export default function CreateVaultPage() {
         </CardContent>
       </Card>
 
-      <Alert variant="secondary" className="bg-muted/30">
+      <Alert className="bg-muted/30 border-white/5">
         <Info className="h-4 w-4" />
-        <AlertDescription className="text-xs leading-relaxed">
+        <AlertDescription className="text-xs leading-relaxed text-muted-foreground">
           Need the Agent Key? Run <code>solana address -k ~/aegis-agent-keypair.json</code> in your terminal.
         </AlertDescription>
-      </Alert>
+      </Alert>  
     </div>
   );
 }

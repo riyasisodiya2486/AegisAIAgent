@@ -3,26 +3,28 @@
 import { useMemo } from "react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { AegisClient } from "@aegis/sdk";
-import { PublicKey } from "@solana/web3.js";
-
-// Copy this exactly from your anchor.toml [programs.localnet]
-const PROGRAM_ID = new PublicKey("EnAS1LC6Rgj993Zt16LwYYSNFWEgRL4VbnarbyRQATAQ");
 
 export function useAegisClient(): AegisClient | null {
   const { publicKey, signTransaction, signAllTransactions } = useWallet();
   const { connection } = useConnection();
 
   return useMemo(() => {
+    // Return null safely if any required piece is missing
     if (!publicKey || !signTransaction || !signAllTransactions) return null;
+    if (!connection) return null;
 
-    return new AegisClient({
-      connection,
-      programId: PROGRAM_ID, // <--- Add this line!
-      wallet: {
-        publicKey,
-        signTransaction,
-        signAllTransactions,
-      },
-    });
-  }, [publicKey, signTransaction, signAllTransactions, connection]);
+    try {
+      return new AegisClient({
+        connection,
+        wallet: { publicKey, signTransaction, signAllTransactions },
+      });
+    } catch {
+      return null;
+    }
+  }, [
+    publicKey?.toBase58(),
+    signTransaction,
+    signAllTransactions,
+    connection,
+  ]);
 }

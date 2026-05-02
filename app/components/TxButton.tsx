@@ -3,72 +3,80 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react"; // Assuming you have lucide-react installed
 
-interface Props {
-  label: string;
-  loadingLabel?: string;
-  onClick: () => Promise<string | void>; // Expects the transaction signature back
-  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost";
-  disabled?: boolean;
-  className?: string;
-  size?: "default" | "sm" | "lg" | "icon";
+// Map common Anchor error codes to readable messages
+const ANCHOR_ERRORS: Record<string, string> = {
+  DailyLimitExceeded: "Daily spending limit reached — wait for reset or increase the limit.",
+  InsufficientFunds:  "Vault has insufficient balance.",
+  UnauthorizedAgent:  "This wallet is not the authorized agent.",
+  UnauthorizedOwner:  "This wallet is not the vault owner.",
+  AgentRevoked:       "Agent has been revoked — vault is frozen.",
+  InvalidDailyLimit:  "Daily limit must be greater than zero.",
+  InvalidDepositAmount: "Deposit amount must be greater than zero.",
+};
+
+function parseAnchorError(msg: string): string {
+  for (const [code, readable] of Object.entries(ANCHOR_ERRORS)) {
+    if (msg.includes(code)) return readable;
+  }
+  if (msg.includes("custom program error")) {
+    const match = msg.match(/0x[0-9a-f]+/i);
+    return match ? `Contract error ${match[0]}` : "Transaction rejected by contract.";
+  }
+  if (msg.includes("insufficient lamports")) return "Insufficient SOL for transaction fees.";
+  if (msg.includes("blockhash")) return "Transaction expired — please try again.";
+  if (msg.includes("User rejected")) return "Transaction cancelled by user.";
+  
+  return msg.length > 100 ? msg.slice(0, 100) + "..." : msg;
 }
 
-/**
- * A standard Aegis button for on-chain actions.
- * Handles loading states and provides toast feedback with Explorer links.
- */
+interface Props {
+  label:         string;
+  loadingLabel?: string;
+  onClick:       () => Promise<string | void | null>;
+  variant?:      "default" | "destructive" | "outline" | "secondary" | "ghost";
+  disabled?:     boolean;
+  className?:    string;
+  size?:         "default" | "sm" | "lg";
+  successMsg?:   string;
+}
+
 export function TxButton({
-  label,
-  loadingLabel,
-  onClick,
-  variant = "default",
-  disabled = false,
-  className,
-  size = "default",
+  label, loadingLabel, onClick, variant = "default",
+  disabled = false, className, size = "default", successMsg,
 }: Props) {
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
-    if (loading || disabled) return;
-    
     setLoading(true);
     const toastId = toast.loading(loadingLabel ?? `${label}...`);
-
+    
     try {
       const sig = await onClick();
-
-      // If we get a signature string, show the success toast with Solscan link
+      
       if (sig && typeof sig === "string") {
-        toast.success(`${label} Successful`, {
+        toast.success(successMsg ?? `${label} confirmed`, {
           id: toastId,
-          description: `Signature: ${sig.slice(0, 8)}...${sig.slice(-8)}`,
+          description: `${sig.slice(0, 8)}...${sig.slice(-8)}`,
           action: {
-            label: "Explorer",
-            onClick: () =>
-              window.open(
-                `https://solscan.io/tx/${sig}?cluster=devnet`,
-                "_blank"
-              ),
+            label: "View",
+            onClick: () => window.open(
+              `https://explorer.solana.com/tx/${sig}?cluster=custom&customUrl=http%3A%2F%2Flocalhost%3A8899`,
+              "_blank"
+            ),
           },
           duration: 6000,
         });
       } else {
-        toast.success(`${label} completed`, { id: toastId });
+        toast.success(successMsg ?? `${label} confirmed`, { id: toastId });
       }
     } catch (err: any) {
       console.error("Transaction Error:", err);
-      const msg = err?.message ?? String(err);
+      const raw     = err?.message ?? String(err);
+      const display = parseAnchorError(raw);
       
-      // Better error parsing for common Solana/Anchor errors
-      const display = msg.includes("User rejected")
-        ? "Transaction cancelled by user."
-        : msg.includes("custom program error")
-        ? `Program Error: ${msg.split(":").pop()?.trim()}`
-        : msg.slice(0, 100);
-
-      toast.error(`${label} Failed`, {
+      toast.error(`${label} failed`, {
         id: toastId,
         description: display,
         duration: 8000,
@@ -81,10 +89,10 @@ export function TxButton({
   return (
     <Button
       variant={variant}
+      size={size}
       disabled={disabled || loading}
       onClick={handleClick}
       className={className}
-      size={size}
     >
       {loading ? (
         <div className="flex items-center gap-2">
