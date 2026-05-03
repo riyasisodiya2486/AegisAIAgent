@@ -41,5 +41,5 @@ impl AgentVault {
         + 2   // yield_rate_bps
         + 8   // pending_fee
         + 2;   // fee_rate_bps
-               // Total: 181 bytes
+               // discriminator + all fields = 213 bytes
 }

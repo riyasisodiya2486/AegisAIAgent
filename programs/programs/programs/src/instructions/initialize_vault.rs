@@ -37,19 +37,21 @@ pub fn handler(
     let vault = &mut ctx.accounts.vault;
     let clock = Clock::get()?;
 
-    vault.owner = ctx.accounts.owner.key();
-    vault.agent_key = ctx.accounts.agent_key.key();
-    vault.original_agent_key = ctx.accounts.agent_key.key(); // Store original key for PDA seeds
-    vault.daily_limit = daily_limit;
-    vault.spent_today = 0;
-    vault.last_reset_ts = clock.unix_timestamp;
-    vault.vault_balance = 0;
-    vault.total_deposited = 0;
-    vault.bump = ctx.bumps.vault;
-    vault.staked_amount = 0;
-    vault.yield_earned = 0;
-    vault.last_yield_ts = clock.unix_timestamp;
-    vault.yield_rate_bps = 800; // Let's start with a default 8% APY for the demo
+    vault.owner              = ctx.accounts.owner.key();
+    vault.agent_key          = ctx.accounts.agent_key.key();
+    vault.original_agent_key = ctx.accounts.agent_key.key(); // SET ON CREATE
+    vault.daily_limit        = daily_limit;
+    vault.spent_today        = 0;
+    vault.last_reset_ts      = Clock::get()?.unix_timestamp;
+    vault.vault_balance      = 0;
+    vault.total_deposited    = 0;
+    vault.bump               = ctx.bumps.vault;
+    vault.staked_amount      = 0;
+    vault.yield_earned       = 0;
+    vault.last_yield_ts      = Clock::get()?.unix_timestamp;
+    vault.yield_rate_bps     = 800; // 8% APY
+    vault.pending_fee        = 0;
+    vault.fee_rate_bps       = 500; // 5%
 
     msg!(
         "Vault created for agent {:?} with daily limit {} lamports",

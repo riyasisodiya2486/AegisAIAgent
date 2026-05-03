@@ -26,15 +26,6 @@ export function createCheckBudgetTool(): DynamicTool {
         return `SETUP ERROR: ${setupErr.message}`;
       }
 
-      // Accrue yield — non-fatal
-      if (!DRY_RUN) {
-        try {
-          await accrueYield(client, vaultPda);
-        } catch {
-          // staked_amount may be 0 — ignore
-        }
-      }
-
       // Fetch vault
       let state;
       try {
@@ -44,14 +35,14 @@ export function createCheckBudgetTool(): DynamicTool {
       }
 
       if (!state) {
-        return [
-          `VAULT NOT FOUND at: ${vaultPda.toBase58()}`,
-          `Possible causes:`,
-          `  1. VAULT_PDA_ADDRESS in .env is wrong`,
-          `  2. Vault was never created — run the SDK smoke test`,
-          `  3. Vault was closed with withdrawAll()`,
-          `DO NOT call SpendViaAegis — there is no vault.`,
-        ].join("\n");
+          return [
+            `VAULT NOT FOUND at: ${vaultPda.toBase58()}`,
+            `Possible causes:`,
+            `  1. VAULT_PDA_ADDRESS in .env is wrong`,
+            `  2. Vault was never created — run the SDK smoke test`,
+            `  3. Vault was closed with withdrawAll`,
+            `  4. Local validator was reset — redeploy program and create vault`,
+          ].join("\n");
       }
 
       if (state.isFrozen) {

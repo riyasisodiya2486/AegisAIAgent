@@ -5,11 +5,10 @@ pub mod revoke_agent;
 pub mod update_limit;
 pub mod withdraw;
 pub mod stake_idle_funds;
-pub mod accrue_yield;      
+pub mod accrue_yield;
 pub mod unstake_for_spend;
 pub mod initialize_protocol_config;
 pub mod collect_fees;
-
 
 pub use stake_idle_funds::*;
 pub use accrue_yield::*;    

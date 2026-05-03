@@ -35,21 +35,24 @@ pub struct CollectFees<'info> {
 // 1. UNIQUE NAME: prevents the "ambiguous glob re-export" error
 pub fn collect_fees_logic(ctx: Context<CollectFees>) -> Result<()> {
     let fee_to_collect = ctx.accounts.vault.pending_fee;
-    let vault_balance = ctx.accounts.vault.vault_balance;
+    // Use actual lamports available, keeping rent exemption in mind
+    let vault_info = ctx.accounts.vault.to_account_info();
+    let rent_exempt_min = Rent::get()?.minimum_balance(vault_info.data_len());
+    let current_lamports = vault_info.lamports();
+    
+    // Calculate how much we can actually take right now
+    let max_withdrawable = current_lamports.saturating_sub(rent_exempt_min);
+    let transferable = fee_to_collect.min(max_withdrawable);
 
     if fee_to_collect == 0 {
         msg!("No pending fees to collect");
         return Ok(());
     }
 
-    let transferable = fee_to_collect.min(vault_balance);
-
     if transferable > 0 {
-        let vault_info = ctx.accounts.vault.to_account_info();
         let treasury_info = ctx.accounts.treasury.to_account_info();
 
-        // 2. MANUAL LAMPORT MUTATION: Fixes "from must not carry data"
-        // 3. GENERIC ERRORS: Ensures it compiles regardless of AegisError contents
+        // Perform the manual transfer
         **vault_info.try_borrow_mut_lamports()? = vault_info
             .lamports()
             .checked_sub(transferable)
@@ -62,9 +65,18 @@ pub fn collect_fees_logic(ctx: Context<CollectFees>) -> Result<()> {
     }
 
     let vault = &mut ctx.accounts.vault;
+    
+    // UPDATE: Only reduce the fee by what was actually paid
+    vault.pending_fee = vault.pending_fee.saturating_sub(transferable);
+    
+    // Synchronize the internal balance tracker
     vault.vault_balance = vault.vault_balance.saturating_sub(transferable);
-    vault.pending_fee = 0;
 
-    msg!("Collected {} lamports in fees.", transferable);
+    msg!(
+        "Collected {} lamports. Remaining debt: {} lamports.", 
+        transferable, 
+        vault.pending_fee
+    );
+    
     Ok(())
 }

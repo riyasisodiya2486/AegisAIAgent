@@ -32,7 +32,12 @@ export default function VaultPage() {
 
   const { vault, loading, error, errorMsg, refresh } = useVaultState(vaultPda);
 
-  const agentKey = vault ? vault.raw.agentKey : null;
+  const agentKey = vault
+    ? (vault.raw.originalAgentKey &&
+      !vault.raw.originalAgentKey.equals(PublicKey.default)
+        ? vault.raw.originalAgentKey
+        : vault.raw.agentKey)
+    : null;
   const actions = useVaultActions(vaultPda, agentKey);
 
   if (!vaultPda) {

@@ -126,30 +126,49 @@ export async function spend(
  */
 export async function revokeAgent(
   client: AegisClient,
-  ownerPubkey: PublicKey,
-  agentPubkey: PublicKey
+  owner: PublicKey,
+  agentKey: PublicKey     // this is the ORIGINAL agent key
 ): Promise<string> {
-  const [vaultPda] = findVaultPda(ownerPubkey, agentPubkey, client.programId);
+  const programId = client.programId;
+  const [vaultPda] = findVaultPda(owner, agentKey, programId);
 
-  return client.program.methods
+  const tx = await client.program.methods
     .revokeAgent()
-    .accounts({
+    .accountsPartial({ // Use accountsPartial instead of .accounts
       vault: vaultPda,
-      owner: ownerPubkey,
+      owner: owner,
+      originalAgentKey: agentKey, 
     })
-    .rpc();
-}
+    .transaction();
 
+  const { blockhash, lastValidBlockHeight } =
+    await client.connection.getLatestBlockhash("confirmed");
+    
+  tx.recentBlockhash = blockhash;
+  tx.feePayer = owner;
+
+  // Use the provider's sendAndConfirm for a cleaner implementation if possible, 
+  // but keeping your manual signing logic below:
+  const signedTx = await (client.program.provider as any).wallet.signTransaction(tx);
+  const signature = await client.connection.sendRawTransaction(signedTx.serialize());
+  
+  await client.connection.confirmTransaction(
+    { signature, blockhash, lastValidBlockHeight },
+    "confirmed"
+  );
+  
+  return signature;
+}
 /**
  * Updates the daily spending limit. Only callable by the vault owner.
  */
 export async function updateDailyLimit(
   client: AegisClient,
   ownerPubkey: PublicKey,
-  agentPubkey: PublicKey,
+  originalAgentKey: PublicKey,
   newLimitSol: number
 ): Promise<string> {
-  const [vaultPda] = findVaultPda(ownerPubkey, agentPubkey, client.programId);
+  const [vaultPda] = findVaultPda(ownerPubkey, originalAgentKey, client.programId);
 
   return client.program.methods
     .updateLimit(solToLamports(newLimitSol))
@@ -167,19 +186,33 @@ export async function updateDailyLimit(
  */
 export async function withdrawAll(
   client: AegisClient,
-  ownerPubkey: PublicKey,
-  agentPubkey: PublicKey
+  owner: PublicKey,
+  originalAgentKey: PublicKey  // must be original, not current (which is zero when frozen)
 ): Promise<string> {
-  const [vaultPda] = findVaultPda(ownerPubkey, agentPubkey, client.programId);
+  const programId = client.programId;
+  const [vaultPda] = findVaultPda(owner, originalAgentKey, programId);
 
-  return client.program.methods
+  const tx = await client.program.methods
     .withdraw()
     .accounts({
-      vault: vaultPda,
-      owner: ownerPubkey,
+      vault:         vaultPda,
+      owner:         owner,
       systemProgram: SystemProgram.programId,
     })
-    .rpc();
+    .transaction();
+
+  const { blockhash, lastValidBlockHeight } =
+    await client.connection.getLatestBlockhash("confirmed");
+  tx.recentBlockhash = blockhash;
+  tx.feePayer        = owner;
+
+  const signedTx  = await (client as any).provider.wallet.signTransaction(tx);
+  const signature = await client.connection.sendRawTransaction(signedTx.serialize());
+  await client.connection.confirmTransaction(
+    { signature, blockhash, lastValidBlockHeight },
+    "confirmed"
+  );
+  return signature;
 }
 
 // ─── Yield management ────────────────────────────────────────────────────────
@@ -190,9 +223,9 @@ export async function withdrawAll(
 export async function stakeIdleFunds(
   client: AegisClient,
   ownerPubkey: PublicKey,
-  agentPubkey: PublicKey
+  originalAgentKey: PublicKey
 ): Promise<string> {
-  const [vaultPda] = findVaultPda(ownerPubkey, agentPubkey, client.programId);
+  const [vaultPda] = findVaultPda(ownerPubkey, originalAgentKey, client.programId);
 
   return client.program.methods
     .stakeIdleFunds()

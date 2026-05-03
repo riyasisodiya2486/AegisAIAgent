@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
-use crate::state::{AgentVault, ProtocolConfig};
-use crate::utils::calculate_yield;
+use crate::state::AgentVault;
+use crate::errors::AegisError;
 
 #[derive(Accounts)]
 pub struct AccrueYield<'info> {
@@ -14,63 +14,52 @@ pub struct AccrueYield<'info> {
         bump = vault.bump,
     )]
     pub vault: Account<'info, AgentVault>,
-
-    /// Global protocol config — read-only here, just need fee_rate_bps
-    #[account(
-        seeds = [b"aegis-protocol-config"],
-        bump = config.bump,
-    )]
-    pub config: Account<'info, ProtocolConfig>,
 }
 
 pub fn handler(ctx: Context<AccrueYield>) -> Result<()> {
-    let config_fee_rate = ctx.accounts.config.fee_rate_bps;
     let vault = &mut ctx.accounts.vault;
-    let clock = Clock::get()?;
 
-    if vault.staked_amount == 0 || vault.yield_rate_bps == 0 {
+    let now          = Clock::get()?.unix_timestamp;
+    let elapsed_secs = (now - vault.last_yield_ts).max(0) as u64;
+
+    if vault.staked_amount == 0 || elapsed_secs == 0 {
+        msg!("Nothing to accrue: staked={}, elapsed={}s", vault.staked_amount, elapsed_secs);
         return Ok(());
     }
 
-    let gross_yield = calculate_yield(
-        vault.staked_amount,
-        vault.yield_rate_bps,
-        vault.last_yield_ts,
-        clock.unix_timestamp,
-    );
+    // yield = staked * rate_bps * elapsed / (10000 * 365 * 86400)
+    // Use u128 to avoid overflow in intermediate calculation
+    let yield_amount = (vault.staked_amount as u128)
+        .checked_mul(vault.yield_rate_bps as u128)
+        .ok_or(AegisError::Overflow)?
+        .checked_mul(elapsed_secs as u128)
+        .ok_or(AegisError::Overflow)?
+        .checked_div(10_000u128 * 365 * 86_400)
+        .ok_or(AegisError::Overflow)? as u64;
 
-    if gross_yield == 0 {
+    if yield_amount == 0 {
+        msg!("Yield too small to accrue yet");
         return Ok(());
     }
 
-    // --- Fee split: 5% to protocol, 95% to user ---
-    // fee = gross_yield * fee_rate_bps / 10_000
-    let fee_amount = (gross_yield as u128)
-        .saturating_mul(config_fee_rate as u128)
-        / 10_000u128;
-    let fee_amount = fee_amount as u64;
+    // Protocol fee — taken from yield, not principal
+    let fee = (yield_amount as u128)
+        .checked_mul(vault.fee_rate_bps as u128)
+        .ok_or(AegisError::Overflow)?
+        .checked_div(10_000)
+        .ok_or(AegisError::Overflow)? as u64;
 
-    let user_yield = gross_yield.saturating_sub(fee_amount);
+    let net_yield = yield_amount.saturating_sub(fee);
 
-    // Accumulate both
-    vault.yield_earned = vault.yield_earned
-        .checked_add(user_yield)
-        .unwrap_or(vault.yield_earned);
-
-    vault.pending_fee = vault.pending_fee
-        .checked_add(fee_amount)
-        .unwrap_or(vault.pending_fee);
-
-    // Store the current fee rate for transparency / frontend display
-    vault.fee_rate_bps = config_fee_rate;
-
-    vault.last_yield_ts = clock.unix_timestamp;
+    // Add net yield to liquid balance (mock yield — no real Kamino CPI needed)
+    vault.vault_balance = vault.vault_balance.saturating_add(net_yield);
+    vault.yield_earned  = vault.yield_earned.saturating_add(net_yield);
+    vault.pending_fee   = vault.pending_fee.saturating_add(fee);
+    vault.last_yield_ts = now;
 
     msg!(
-        "Yield accrued — user: {} lamports, protocol fee: {} lamports",
-        user_yield,
-        fee_amount
+        "Accrued {} lamports yield ({} fee) over {}s",
+        net_yield, fee, elapsed_secs
     );
-
     Ok(())
 }

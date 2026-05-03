@@ -29,12 +29,20 @@ pub struct RevokeAgent<'info> {
 pub fn handler(ctx: Context<RevokeAgent>) -> Result<()> {
     let vault = &mut ctx.accounts.vault;
 
-    // Store original key before zeroing it, so withdraw can still find the vault
-    vault.original_agent_key = vault.agent_key;
+    // Guard: prevent double-revoke corrupting original_agent_key
+    require!(
+        vault.agent_key != Pubkey::default(),
+        AegisError::AlreadyRevoked
+    );
 
-    // Zero out agent_key to freeze spending
+    // Preserve original key (idempotent — only set once)
+    if vault.original_agent_key == Pubkey::default() {
+        vault.original_agent_key = vault.agent_key;
+    }
+
+    // Zero out current agent key to freeze spending
     vault.agent_key = Pubkey::default();
 
-    msg!("Agent revoked. Vault is frozen. Original key preserved for PDA derivation.");
+    msg!("Agent revoked. original_agent_key preserved for PDA derivation.");
     Ok(())
 }

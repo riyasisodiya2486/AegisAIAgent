@@ -114,6 +114,22 @@ Example: {"url":"http://localhost:4402/api/compute","method":"GET","memo":"fetch
       } else {
         try {
           const recipient = new PublicKey(paymentDetails.recipient);
+
+          // --- NEW: Unstake if liquid balance is insufficient ---
+          if (state.vaultBalanceSol < amountSol && state.stakedAmountSol > 0) {
+            try {
+              // Dynamically import to avoid circular dependencies if needed
+              const { unstakeForSpend } = await import("@aegis/sdk");
+              await unstakeForSpend(client, vaultPda, agentKeypair, amountSol);
+              console.log(`[FetchWithPayment] Unstaked for payment`);
+              
+              // Optional: Refresh state to ensure balance updated (or just proceed to spend)
+            } catch (unstakeErr: any) {
+              return `ERROR: Could not unstake: ${unstakeErr.message}`;
+            }
+          }
+          // --- END NEW BLOCK ---
+
           txSignature = await spend(client, vaultPda, agentKeypair, recipient, amountSol);
           console.log(`[FetchWithPayment] Payment tx: ${txSignature}`);
         } catch (payErr: any) {

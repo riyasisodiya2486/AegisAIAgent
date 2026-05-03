@@ -54,44 +54,8 @@ export type Aegis = {
               },
               {
                 "kind": "account",
-                "path": "vault.agent_key",
+                "path": "vault.original_agent_key",
                 "account": "agentVault"
-              }
-            ]
-          }
-        },
-        {
-          "name": "config",
-          "docs": [
-            "Global protocol config — read-only here, just need fee_rate_bps"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  101,
-                  103,
-                  105,
-                  115,
-                  45,
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108,
-                  45,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
               }
             ]
           }
@@ -140,7 +104,7 @@ export type Aegis = {
               },
               {
                 "kind": "account",
-                "path": "vault.agent_key",
+                "path": "vault.original_agent_key",
                 "account": "agentVault"
               }
             ]
@@ -240,7 +204,7 @@ export type Aegis = {
               },
               {
                 "kind": "account",
-                "path": "vault.agent_key",
+                "path": "vault.original_agent_key",
                 "account": "agentVault"
               }
             ]
@@ -442,8 +406,7 @@ export type Aegis = {
               },
               {
                 "kind": "account",
-                "path": "vault.agent_key",
-                "account": "agentVault"
+                "path": "originalAgentKey"
               }
             ]
           }
@@ -454,6 +417,12 @@ export type Aegis = {
           "signer": true,
           "relations": [
             "vault"
+          ]
+        },
+        {
+          "name": "originalAgentKey",
+          "docs": [
+            "Must match the key stored in vault.agent_key OR vault.original_agent_key."
           ]
         }
       ],
@@ -500,7 +469,7 @@ export type Aegis = {
               },
               {
                 "kind": "account",
-                "path": "vault.agent_key",
+                "path": "vault.original_agent_key",
                 "account": "agentVault"
               }
             ]
@@ -567,7 +536,7 @@ export type Aegis = {
               },
               {
                 "kind": "account",
-                "path": "vault.agent_key",
+                "path": "vault.original_agent_key",
                 "account": "agentVault"
               }
             ]
@@ -658,7 +627,7 @@ export type Aegis = {
               },
               {
                 "kind": "account",
-                "path": "vault.agent_key",
+                "path": "vault.original_agent_key",
                 "account": "agentVault"
               }
             ]
@@ -716,7 +685,7 @@ export type Aegis = {
               },
               {
                 "kind": "account",
-                "path": "vault.agent_key",
+                "path": "vault.original_agent_key",
                 "account": "agentVault"
               }
             ]
@@ -778,7 +747,7 @@ export type Aegis = {
               },
               {
                 "kind": "account",
-                "path": "vault.agent_key",
+                "path": "vault.original_agent_key",
                 "account": "agentVault"
               }
             ]
@@ -831,38 +800,58 @@ export type Aegis = {
   "errors": [
     {
       "code": 6000,
-      "name": "unauthorizedAgent",
-      "msg": "Signer is not the authorized agent for this vault"
+      "name": "dailyLimitExceeded",
+      "msg": "Daily spending limit exceeded"
     },
     {
       "code": 6001,
-      "name": "dailyLimitExceeded",
-      "msg": "This transaction would exceed the vault's daily spending limit"
+      "name": "insufficientFunds",
+      "msg": "Insufficient vault balance"
     },
     {
       "code": 6002,
-      "name": "insufficientFunds",
-      "msg": "Vault has insufficient balance for this transaction"
+      "name": "unauthorizedOwner",
+      "msg": "Unauthorized: not the vault owner"
     },
     {
       "code": 6003,
-      "name": "unauthorizedOwner",
-      "msg": "Only the vault owner can perform this action"
+      "name": "unauthorizedAgent",
+      "msg": "Unauthorized: not the vault agent"
     },
     {
       "code": 6004,
+      "name": "alreadyRevoked",
+      "msg": "Agent has already been revoked"
+    },
+    {
+      "code": 6005,
+      "name": "agentRevoked",
+      "msg": "Agent has been revoked — vault is frozen"
+    },
+    {
+      "code": 6006,
+      "name": "vaultFrozen",
+      "msg": "Vault is frozen"
+    },
+    {
+      "code": 6007,
+      "name": "invalidAmount",
+      "msg": "Invalid amount"
+    },
+    {
+      "code": 6008,
       "name": "invalidDailyLimit",
       "msg": "Daily limit must be greater than zero"
     },
     {
-      "code": 6005,
+      "code": 6009,
       "name": "invalidDepositAmount",
       "msg": "Deposit amount must be greater than zero"
     },
     {
-      "code": 6006,
-      "name": "agentRevoked",
-      "msg": "Agent has been revoked — vault is frozen"
+      "code": 6010,
+      "name": "overflow",
+      "msg": "Arithmetic overflow"
     }
   ],
   "types": [
@@ -877,6 +866,10 @@ export type Aegis = {
           },
           {
             "name": "agentKey",
+            "type": "pubkey"
+          },
+          {
+            "name": "originalAgentKey",
             "type": "pubkey"
           },
           {

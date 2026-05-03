@@ -2,17 +2,29 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum AegisError {
-    #[msg("Signer is not the authorized agent for this vault")]
-    UnauthorizedAgent,
-
-    #[msg("This transaction would exceed the vault's daily spending limit")]
+    #[msg("Daily spending limit exceeded")]
     DailyLimitExceeded,
 
-    #[msg("Vault has insufficient balance for this transaction")]
+    #[msg("Insufficient vault balance")]
     InsufficientFunds,
 
-    #[msg("Only the vault owner can perform this action")]
+    #[msg("Unauthorized: not the vault owner")]
     UnauthorizedOwner,
+
+    #[msg("Unauthorized: not the vault agent")]
+    UnauthorizedAgent,
+
+    #[msg("Agent has already been revoked")]
+    AlreadyRevoked,
+
+    #[msg("Agent has been revoked — vault is frozen")]
+    AgentRevoked,
+
+    #[msg("Vault is frozen")]
+    VaultFrozen,
+
+    #[msg("Invalid amount")]
+    InvalidAmount,
 
     #[msg("Daily limit must be greater than zero")]
     InvalidDailyLimit,
@@ -20,6 +32,6 @@ pub enum AegisError {
     #[msg("Deposit amount must be greater than zero")]
     InvalidDepositAmount,
 
-    #[msg("Agent has been revoked — vault is frozen")]
-    AgentRevoked,
+    #[msg("Arithmetic overflow")]
+    Overflow,
 }
