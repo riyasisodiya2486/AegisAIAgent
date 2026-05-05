@@ -12,7 +12,7 @@ aegis = "BDNiWnqSPZgLrZRmMkvgagjqg9tZgVM3s9DdGDerjSeZ"
 aegis = "EnAS1LC6Rgj993Zt16LwYYSNFWEgRL4VbnarbyRQATAQ"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
