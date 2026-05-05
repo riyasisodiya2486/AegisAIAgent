@@ -27,7 +27,7 @@ pub struct StakeIdleFunds<'info> {
 
     #[account(
         seeds = [b"aegis-protocol-config"],
-        bump = config.bump,
+        bump,
     )]
     pub config: Account<'info, ProtocolConfig>,
 

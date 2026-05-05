@@ -104,9 +104,19 @@ export function YieldDisplay({ vault, onStake, onAccrueYield, onSuccess }: Props
           label="Refresh yield"
           loadingLabel="Accruing..."
           onClick={async () => {
-            const sig = await onAccrueYield();
-            onSuccess();
-            return sig;
+            try {
+              const sig = await onStake();
+              onSuccess();
+              return sig;
+            } catch (err: any) {
+              const msg = err?.message ?? String(err);
+              if (msg.includes("AccountNotInitialized") || msg.includes("3012")) {
+                throw new Error(
+                  "Protocol config not initialized. Click 'Initialize Protocol' button first."
+                );
+              }
+              throw err;
+            }
           }}
           variant="outline"
           className="w-full text-xs"

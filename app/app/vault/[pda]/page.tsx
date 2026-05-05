@@ -17,6 +17,7 @@ import { ActivityFeed } from "@/components/feed/ActivityFeed";
 import { KillSwitch } from "@/components/vault/KillSwitch";
 import { WithdrawPanel } from "@/components/vault/WithdrawPanel";
 import { VaultStatusBanner } from "@/components/vault/VaultStatusBanner";
+import { ProtocolConfigInit } from "@/components/vault/ProtocolConfigInit";
 
 export default function VaultPage() {
   const { pda } = useParams<{ pda: string }>();
@@ -84,6 +85,7 @@ export default function VaultPage() {
           </div>
 
           <VaultStatusBanner vault={vault} />
+          <ProtocolConfigInit />
 
           {/* Error state */}
           {!loading && !vault && error && (

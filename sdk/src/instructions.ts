@@ -206,7 +206,7 @@ export async function withdrawAll(
   tx.recentBlockhash = blockhash;
   tx.feePayer        = owner;
 
-  const signedTx  = await (client as any).provider.wallet.signTransaction(tx);
+  const signedTx = await (client.program.provider as any).wallet.signTransaction(tx);
   const signature = await client.connection.sendRawTransaction(signedTx.serialize());
   await client.connection.confirmTransaction(
     { signature, blockhash, lastValidBlockHeight },
