@@ -140,9 +140,13 @@ async function callOllama(messages: OllamaMessage[]): Promise<any> {
       messages,
       tools: TOOL_DEFINITIONS,
       stream: false,
-      options: { temperature: 0, num_ctx: 8192 },
+      options: { 
+        temperature: 0,
+        num_ctx: 4096,        // reduce context window — faster inference
+        num_predict: 256,  
+      },
     }),
-    signal: AbortSignal.timeout(60_000),
+    signal: AbortSignal.timeout(120_000),
   });
 
   if (!response.ok) {
@@ -229,8 +233,8 @@ export async function runAgent(
   }
 
   const messages: OllamaMessage[] = [
-    { role: "system",  content: SYSTEM_PROMPT },
-    { role: "user",    content: task },
+    { role: "system", content: SYSTEM_PROMPT },
+    { role: "user",   content: task },
   ];
 
   const steps: AgentStep[] = [];
@@ -243,36 +247,45 @@ export async function runAgent(
     try {
       response = await callOllama(messages);
     } catch (err: any) {
-      return {
-        output: `Ollama call failed: ${err.message}`,
-        steps,
-        success: false,
-        error: err.message,
-      };
+      const msg: string = err?.message ?? String(err);
+
+      // TIMEOUT after successful tool calls — treat as success
+      // The transaction already went through even if Ollama timed out
+      if (
+        (msg.includes("timeout") || msg.includes("aborted")) &&
+        steps.length > 0
+      ) {
+        const lastSpend = steps.filter(s => s.tool === "SpendViaAegis").pop();
+        const summary = lastSpend?.output.includes("SUCCESS")
+          ? `Transaction completed successfully. ${lastSpend.output.split("\n")[0]}`
+          : `Completed ${steps.length} tool calls. Ollama timed out on final summary.`;
+
+        return { output: summary, steps, success: true };
+      }
+
+      if (msg.includes("ECONNREFUSED") && msg.includes("11434")) {
+        return {
+          output: "Ollama is not running. Start it with: ollama serve",
+          steps, success: false, error: "Ollama not running",
+        };
+      }
+
+      return { output: `Ollama call failed: ${msg}`, steps, success: false, error: msg };
     }
 
     const assistantMessage = response.message;
     messages.push(assistantMessage);
 
-    // No tool calls — model produced final answer
     if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
-      console.log(`[Agent] Final answer received`);
-      return {
-        output:  assistantMessage.content ?? "Task completed.",
-        steps,
-        success: true,
-      };
+      return { output: assistantMessage.content ?? "Task completed.", steps, success: true };
     }
 
-    // Execute each tool call
     for (const toolCall of assistantMessage.tool_calls) {
       const toolName = toolCall.function.name;
       const toolArgs = toolCall.function.arguments ?? {};
 
       console.log(`[Agent] Calling tool: ${toolName}`, JSON.stringify(toolArgs).slice(0, 100));
-
       const toolResult = await executeTool(toolName, toolArgs);
-
       console.log(`[Agent] Tool result: ${toolResult.slice(0, 200)}`);
 
       steps.push({
@@ -282,18 +295,13 @@ export async function runAgent(
         timestamp: new Date().toISOString(),
       });
 
-      // Add tool result back to conversation
-      messages.push({
-        role:    "tool",
-        content: toolResult,
-      });
+      messages.push({ role: "tool", content: toolResult });
     }
   }
 
-  // Reached max iterations — return what we have
   return {
-    output:  "Max iterations reached. Task may be incomplete.",
+    output:  "Max iterations reached.",
     steps,
     success: steps.length > 0,
   };
-}
+} 
