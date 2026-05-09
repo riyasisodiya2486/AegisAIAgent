@@ -16,41 +16,57 @@ interface UseVaultStateResult {
   refresh:  () => Promise<void>;
 }
 
+// Simple module-level cache — shared across all hook instances
+const cache = new Map<string, { state: VaultState; ts: number }>();
+const CACHE_TTL_MS = 3000; // 3 seconds
+
 export function useVaultState(vaultPda: PublicKey | null): UseVaultStateResult {
-  const client           = useAegisClient();
-  const { connection }   = useConnection();
+  const client          = useAegisClient();
+  const { connection }  = useConnection();
   const [vault,    setVault]    = useState<VaultState | null>(null);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState<VaultFetchError>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const subIdRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
 
   const fetchVault = useCallback(async () => {
     if (!client || !vaultPda) return;
-    if (!mountedRef.current) return;
-    setLoading(true);
+    const key = vaultPda.toBase58();
 
+    // Return cached value if fresh enough
+    const cached = cache.get(key);
+    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+      setVault(cached.state);
+      setError(null);
+      setErrorMsg(null);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     try {
       const state = await getVaultStateByAddress(client, vaultPda);
       if (!mountedRef.current) return;
 
       if (state) {
+        cache.set(key, { state, ts: Date.now() });
         setVault(state);
         setError(null);
         setErrorMsg(null);
       } else {
+        cache.delete(key);
         setVault(null);
         setError("not_found");
         setErrorMsg(
-          `Vault not found at ${vaultPda.toBase58().slice(0,8)}... ` +
-          `— it may have been closed or the validator was reset.`
+          `Vault not found at ${key.slice(0, 8)}... ` +
+          `— may have been closed or the validator was reset.`
         );
       }
     } catch (err: any) {
       if (!mountedRef.current) return;
+      cache.delete(key);
       setVault(null);
-      const msg: string = err?.message ?? String(err);
+      const msg = err?.message ?? String(err);
       if (msg.includes("Account does not exist") || msg.includes("has no data")) {
         setError("not_found");
         setErrorMsg("Vault account not found on-chain.");
@@ -59,47 +75,46 @@ export function useVaultState(vaultPda: PublicKey | null): UseVaultStateResult {
         setErrorMsg("Program ID mismatch — redeploy and create a new vault.");
       } else {
         setError("rpc_error");
-        setErrorMsg(`RPC error: ${msg.slice(0, 120)}`);
+        setErrorMsg(`RPC error: ${msg.slice(0, 100)}`);
       }
     } finally {
       if (mountedRef.current) setLoading(false);
     }
   }, [client, vaultPda?.toBase58()]);
 
-  // Subscribe to on-chain account changes — instant updates, no polling
   useEffect(() => {
     mountedRef.current = true;
     if (!vaultPda || !connection || !client) return;
 
-    // Initial fetch
     fetchVault();
 
-    // Subscribe to account changes via WebSocket
+    // Use onAccountChange subscription — fires immediately when vault changes
+    let subId: number | null = null;
     try {
-      subIdRef.current = connection.onAccountChange(
+      subId = connection.onAccountChange(
         vaultPda,
-        (_accountInfo) => {
-          // Account changed on-chain — re-fetch decoded state
+        () => {
+          // Invalidate cache on account change
+          cache.delete(vaultPda.toBase58());
           if (mountedRef.current) fetchVault();
         },
         "confirmed"
       );
     } catch {
-      // WebSocket subscription failed — fall back to polling
-      const pollId = setInterval(() => {
+      // Fallback to polling every 10s
+      const id = setInterval(() => {
         if (mountedRef.current) fetchVault();
       }, 10_000);
       return () => {
         mountedRef.current = false;
-        clearInterval(pollId);
+        clearInterval(id);
       };
     }
 
     return () => {
       mountedRef.current = false;
-      if (subIdRef.current !== null) {
-        connection.removeAccountChangeListener(subIdRef.current).catch(() => {});
-        subIdRef.current = null;
+      if (subId !== null) {
+        connection.removeAccountChangeListener(subId).catch(() => {});
       }
     };
   }, [vaultPda?.toBase58(), connection, client]);

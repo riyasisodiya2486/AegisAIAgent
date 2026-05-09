@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { SolanaWalletProvider } from "@/providers/WalletProvider";
 import { Toaster } from "sonner";
 import { TermsBanner } from "@/components/TermsBanner";
 
-const font = Space_Grotesk({ subsets: ["latin"], weight: ["400","500","600","700"] });
+
 
 export const metadata: Metadata = {
   title: "Aegis — AI Agent Vaults on Solana",
@@ -15,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${font.className} bg-[#0a0a0f] text-white antialiased`}>
+      <body className="bg-[#0a0a0f] text-white antialiased">
         <SolanaWalletProvider>
           {children}
           

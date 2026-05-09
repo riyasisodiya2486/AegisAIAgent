@@ -1,6 +1,7 @@
 "use client";
 
 import { VaultState } from "@aegis/sdk";
+import { ShieldAlert, Info } from "lucide-react";
 
 interface Props {
   vault: VaultState | null;
@@ -11,31 +12,45 @@ export function VaultStatusBanner({ vault }: Props) {
   if (!vault || !vault.isFrozen) return null;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-red-500/5 mb-6">
-      {/* Subtle background glow/gradient */}
-      <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent pointer-events-none" />
+    <div className="relative overflow-hidden rounded-[2rem] border border-red-500/30 bg-[#050505] mb-8 shadow-[0_0_40px_rgba(239,68,68,0.1)]">
+      {/* High-intensity terminal scanline gradient */}
+      <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-red-500/20 to-transparent" />
       
-      <div className="relative flex items-start gap-4 p-5">
-        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/20 flex items-center justify-center text-xl">
-          ⚠
+      <div className="relative flex items-start gap-6 p-6">
+        {/* Status Icon with Glow */}
+        <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+          <ShieldAlert size={22} />
         </div>
         
-        <div className="flex-1 space-y-1">
-          <h4 className="text-sm font-bold text-red-400 uppercase tracking-wider">
-            This vault is frozen
-          </h4>
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-3">
+            <h4 className="text-[10px] font-black text-red-500 uppercase tracking-[0.4em]">
+              Vault_Status: SEQUESTERED
+            </h4>
+            <div className="h-px flex-1 bg-red-500/10" />
+          </div>
           
-          <p className="text-sm text-red-400/70 leading-relaxed max-w-2xl">
-            The agent's signing rights have been revoked. All agent transactions
-            will be rejected by the smart contract until a new vault is created.
-            Your funds are safe and can be withdrawn below.
+          <p className="text-[12px] font-medium text-red-200/40 leading-relaxed max-w-3xl uppercase tracking-tight">
+            Cryptographic signing authority has been severed. Automated agent execution is 
+            permanently disabled for this terminal. Asset liquidity remains secured 
+            within the vault kernel and is accessible for manual withdrawal protocols.
           </p>
         </div>
 
-        {/* Optional "Active" Pulse to draw attention to the warning */}
-        <div className="flex-shrink-0 pt-1">
-          <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+        {/* Diagnostic Status Pulse */}
+        <div className="flex flex-col items-center gap-2 shrink-0 pt-1">
+          <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.8)]" />
+          <span className="text-[8px] font-black text-red-500/40 tracking-tighter uppercase">Lockout</span>
         </div>
+      </div>
+
+      {/* Footer System Info */}
+      <div className="bg-red-500/[0.03] border-t border-red-500/10 px-6 py-2.5 flex items-center gap-2">
+        <Info size={10} className="text-red-500/30" />
+        <span className="text-[9px] font-mono font-bold text-red-500/30 uppercase tracking-widest">
+          Error_Code: SIG_REVOKED_BY_AUTHORITY
+        </span>
       </div>
     </div>
   );

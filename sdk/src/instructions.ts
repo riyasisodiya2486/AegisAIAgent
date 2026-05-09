@@ -249,7 +249,6 @@ export async function accrueYield(
     .accrueYield()
     .accounts({
       vault: vaultPda,
-      config: client.configPda,
     })
     .rpc();
 }

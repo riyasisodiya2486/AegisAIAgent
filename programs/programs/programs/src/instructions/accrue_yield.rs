@@ -42,17 +42,15 @@ pub fn handler(ctx: Context<AccrueYield>) -> Result<()> {
         return Ok(());
     }
 
-    // Protocol fee — taken from yield, not principal
-    let fee = (yield_amount as u128)
-        .checked_mul(vault.fee_rate_bps as u128)
-        .ok_or(AegisError::Overflow)?
-        .checked_div(10_000)
-        .ok_or(AegisError::Overflow)? as u64;
+    // Protocol fee — disabled for mock yield to prevent draining real lamports
+    let fee = 0;
 
     let net_yield = yield_amount.saturating_sub(fee);
 
-    // Add net yield to liquid balance (mock yield — no real Kamino CPI needed)
-    vault.vault_balance = vault.vault_balance.saturating_add(net_yield);
+    // Track yield earned (for dashboard display) WITHOUT adding to vault_balance.
+    // vault_balance must only reflect real physical lamports deposited into the PDA.
+    // Adding fake lamports here would cause spend.rs to panic with InsufficientFunds
+    // when the AI agent tried to spend the "yielded" balance.
     vault.yield_earned  = vault.yield_earned.saturating_add(net_yield);
     vault.pending_fee   = vault.pending_fee.saturating_add(fee);
     vault.last_yield_ts = now;

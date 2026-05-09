@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { VaultState } from "@aegis/sdk";
+import { ShieldCheck, ShieldAlert, ChevronRight } from "lucide-react";
 
 interface Props {
   vault:   VaultState | null;
@@ -11,9 +12,9 @@ interface Props {
 
 function StatRow({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="flex justify-between items-center py-2 border-b border-white/4 last:border-0">
-      <span className="text-xs text-white/35">{label}</span>
-      <span className={`text-xs font-semibold ${accent ? "text-violet-400" : "text-white/70"}`}>
+    <div className="flex justify-between items-center py-3 border-b border-blue-500/5 last:border-0">
+      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-100/30">{label}</span>
+      <span className={`text-xs font-mono font-bold ${accent ? "text-cyan-400" : "text-blue-100/70"}`}>
         {value}
       </span>
     </div>
@@ -23,12 +24,12 @@ function StatRow({ label, value, accent }: { label: string; value: string; accen
 export function VaultSummaryCard({ vault, pdaStr, loading }: Props) {
   if (loading && !vault) {
     return (
-      <div className="rounded-2xl border border-white/6 bg-white/3 p-6 space-y-3 animate-pulse">
-        <div className="h-4 w-24 bg-white/8 rounded" />
-        {[1,2,3,4].map(i => (
-          <div key={i} className="flex justify-between">
-            <div className="h-3 w-20 bg-white/5 rounded" />
-            <div className="h-3 w-16 bg-white/5 rounded" />
+      <div className="rounded-[2rem] border border-blue-500/15 bg-[#050505] p-7 space-y-4 animate-pulse">
+        <div className="h-4 w-24 bg-blue-500/10 rounded-full" />
+        {[1, 2, 3, 4, 5, 6].map(i => (
+          <div key={i} className="flex justify-between items-center py-2">
+            <div className="h-2.5 w-20 bg-blue-500/5 rounded" />
+            <div className="h-2.5 w-16 bg-blue-500/5 rounded" />
           </div>
         ))}
       </div>
@@ -40,34 +41,44 @@ export function VaultSummaryCard({ vault, pdaStr, loading }: Props) {
   const totalBalance = vault.vaultBalanceSol + vault.stakedAmountSol;
 
   return (
-    <div className="rounded-2xl border border-white/6 bg-white/3 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-sm">Vault Summary</h3>
-        <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${
+    <div className="rounded-[2rem] border border-blue-500/15 bg-[#050505] p-7 shadow-2xl relative overflow-hidden group">
+      {/* Subtle Background Glow */}
+      <div className="absolute -top-12 -right-12 w-32 h-32 bg-blue-600/5 blur-[60px] pointer-events-none" />
+
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2.5">
+          <h3 className="font-black text-xs uppercase tracking-[0.3em] text-blue-400">Vault_Summary</h3>
+        </div>
+        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest transition-colors ${
           vault.isFrozen
-            ? "bg-red-500/15 text-red-400 border-red-500/20"
-            : "bg-emerald-500/12 text-emerald-400 border-emerald-500/20"
+            ? "bg-red-500/10 text-red-400 border-red-500/20"
+            : "bg-blue-500/10 text-blue-400 border-blue-500/20"
         }`}>
-          {vault.isFrozen ? "Frozen" : "Active"}
-        </span>
+          {vault.isFrozen ? (
+            <><ShieldAlert size={10} /> Frozen</>
+          ) : (
+            <><ShieldCheck size={10} /> Active</>
+          )}
+        </div>
       </div>
 
-      <div>
-        <StatRow label="Total balance"    value={`${totalBalance.toFixed(4)} SOL`}            />
-        <StatRow label="Liquid"           value={`${vault.vaultBalanceSol.toFixed(4)} SOL`}   />
-        <StatRow label="Staked"           value={`${vault.stakedAmountSol.toFixed(4)} SOL`} accent />
-        <StatRow label="Daily limit"      value={`${vault.dailyLimitSol.toFixed(4)} SOL`}    />
-        <StatRow label="Remaining today"  value={`${vault.remainingTodaySol.toFixed(4)} SOL`} />
-        <StatRow label="Yield earned"     value={`${vault.yieldEarnedSol.toFixed(6)} SOL`} accent />
+      <div className="space-y-1">
+        <StatRow label="Total_Balance"    value={`${totalBalance.toFixed(4)} SOL`}            />
+        <StatRow label="Liquid_Assets"    value={`${vault.vaultBalanceSol.toFixed(4)} SOL`}   />
+        <StatRow label="Staked_Module"    value={`${vault.stakedAmountSol.toFixed(4)} SOL`} accent />
+        <StatRow label="Cycle_Limit"      value={`${vault.dailyLimitSol.toFixed(4)} SOL`}    />
+        <StatRow label="Available_Now"    value={`${vault.remainingTodaySol.toFixed(4)} SOL`} />
+        <StatRow label="Protocol_Yield"   value={`${vault.yieldEarnedSol.toFixed(6)} SOL`} accent />
       </div>
 
       <Link
         href={`/vault/${pdaStr}`}
-        className="mt-4 flex items-center justify-center gap-1.5 w-full py-2 rounded-xl
-          border border-white/8 bg-white/3 hover:bg-white/6 hover:border-white/14
-          text-xs text-white/50 hover:text-white/75 transition-all"
+        className="mt-6 flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl
+          border border-blue-500/10 bg-blue-500/5 hover:bg-blue-600 hover:border-blue-400
+          text-[10px] font-black uppercase tracking-[0.2em] text-blue-400 hover:text-white transition-all group/link shadow-lg active:scale-[0.98]"
       >
-        Manage vault →
+        Manage_Vault 
+        <ChevronRight size={12} className="group-hover/link:translate-x-1 transition-transform" />
       </Link>
     </div>
   );

@@ -49,7 +49,14 @@ function lamportsToSol(lamports: BN | number): number {
 function formatVaultState(raw: any, vaultPda: PublicKey): VaultState {
   const vaultBalance = lamportsToSol(raw.vaultBalance);
   const dailyLimit   = lamportsToSol(raw.dailyLimit);
-  const spentToday   = lamportsToSol(raw.spentToday);
+  
+  // FIX: The on-chain state only updates spent_today on the next spend transaction.
+  // We must visually reset it in the UI if 24 hours have passed.
+  const now = Math.floor(Date.now() / 1000);
+  const lastResetTs = raw.lastResetTs.toNumber();
+  const spentTodayLamports = (now - lastResetTs >= 86400) ? new BN(0) : raw.spentToday;
+  
+  const spentToday   = lamportsToSol(spentTodayLamports);
 
   // KEY FIX: If agentKey is zero (frozen), use originalAgentKey for UI display
   const isFrozen = raw.agentKey.equals(PublicKey.default);
@@ -109,9 +116,18 @@ export async function getVaultStateByAddress(
   try {
     const raw = await client.program.account.agentVault.fetch(vaultPda);
     return formatVaultState(raw, vaultPda);
-  } catch (err) {
-    console.error("Error fetching vault by address:", err);
-    return null;
+  } catch (err: any) {
+    const msg: string = err?.message ?? String(err);
+    // Anchor throws when the account simply doesn't exist — treat as null
+    if (
+      msg.includes("Account does not exist") ||
+      msg.includes("has no data") ||
+      msg.includes("could not find account")
+    ) {
+      return null;
+    }
+    // Re-throw RPC / network / program errors so callers can classify them
+    throw err;
   }
 }
 

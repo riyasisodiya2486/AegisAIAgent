@@ -5,6 +5,7 @@ import { DynamicTool } from "@langchain/core/tools";
 import { PublicKey } from "@solana/web3.js";
 import { getVaultStateByAddress, spend } from "@aegis/sdk";
 import { createAgentClient, loadVaultPda, DRY_RUN } from "../config/wallet";
+import { logTransaction } from "../logger";
 
 export function createFetchWithPaymentTool(): DynamicTool {
   return new DynamicTool({
@@ -111,28 +112,52 @@ Example: {"url":"http://localhost:4402/api/compute","method":"GET","memo":"fetch
       if (DRY_RUN) {
         txSignature = `DRY_RUN_${Date.now()}`;
         console.log(`[FetchWithPayment] DRY RUN — skipping payment`);
+        logTransaction({
+          timestamp:        new Date().toISOString(),
+          status:           "DRY_RUN",
+          signature:        txSignature,
+          amount_sol:       amountSol,
+          recipient:        paymentDetails.recipient ?? "unknown",
+          memo:             `x402: ${input.memo}`,
+          remaining_budget: state.remainingTodaySol,
+        });
       } else {
         try {
           const recipient = new PublicKey(paymentDetails.recipient);
 
-          // --- NEW: Unstake if liquid balance is insufficient ---
+          // Unstake if liquid balance is insufficient
           if (state.vaultBalanceSol < amountSol && state.stakedAmountSol > 0) {
             try {
-              // Dynamically import to avoid circular dependencies if needed
               const { unstakeForSpend } = await import("@aegis/sdk");
               await unstakeForSpend(client, vaultPda, agentKeypair, amountSol);
               console.log(`[FetchWithPayment] Unstaked for payment`);
-              
-              // Optional: Refresh state to ensure balance updated (or just proceed to spend)
             } catch (unstakeErr: any) {
               return `ERROR: Could not unstake: ${unstakeErr.message}`;
             }
           }
-          // --- END NEW BLOCK ---
 
           txSignature = await spend(client, vaultPda, agentKeypair, recipient, amountSol);
           console.log(`[FetchWithPayment] Payment tx: ${txSignature}`);
+
+          logTransaction({
+            timestamp:        new Date().toISOString(),
+            status:           "SUCCESS",
+            signature:        txSignature,
+            amount_sol:       amountSol,
+            recipient:        paymentDetails.recipient,
+            memo:             `x402: ${input.memo}`,
+            remaining_budget: Math.max(0, state.remainingTodaySol - amountSol),
+          });
         } catch (payErr: any) {
+          logTransaction({
+            timestamp:  new Date().toISOString(),
+            status:     "ERROR",
+            signature:  "",
+            amount_sol: amountSol,
+            recipient:  paymentDetails.recipient ?? "unknown",
+            memo:       `x402: ${input.memo}`,
+            error:      payErr.message,
+          });
           return `ERROR: Payment failed — ${payErr.message}`;
         }
       }

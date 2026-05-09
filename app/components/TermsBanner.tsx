@@ -1,14 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShieldAlert, ChevronRight, Scale } from "lucide-react";
 
 export function TermsBanner() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    // Check if user has already accepted
     const accepted = localStorage.getItem("aegis_terms_accepted");
-    if (!accepted) setShow(true);
+    if (!accepted) {
+      const timer = setTimeout(() => setShow(true), 1200);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   const handleAccept = () => {
@@ -16,26 +20,56 @@ export function TermsBanner() {
     setShow(false);
   };
 
-  if (!show) return null;
-
   return (
-    <div className="fixed bottom-6 right-6 z-50 max-w-sm w-full animate-in slide-in-from-bottom-4 duration-500">
-      <div className="rounded-2xl border border-violet-500/30 bg-black/90 p-5 backdrop-blur-xl shadow-2xl shadow-violet-500/10">
-        <div className="flex gap-3 mb-4">
-          <div className="text-xl">⚖️</div>
-          <p className="text-[13px] leading-relaxed text-white/80">
-            Aegis is <span className="text-violet-400 font-semibold">experimental software</span> on Solana Localnet. 
-            Not financial advice. Use at your own risk. Funds may be lost due to smart contract or agent error.
-          </p>
-        </div>
-
-        <button
-          onClick={handleAccept}
-          className="w-full py-2.5 rounded-xl bg-violet-600 text-xs font-semibold text-white hover:bg-violet-500 active:scale-[0.98] transition-all"
+    <AnimatePresence>
+      {show && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 30, scale: 0.9 }}
+          className="fixed bottom-6 right-6 z-[100] max-w-[360px] w-full px-4 md:px-0"
         >
-          I understand — Continue
-        </button>
-      </div>
-    </div>
+          <div className="relative overflow-hidden rounded-[2.5rem] border border-blue-500/20 bg-[#050505]/90 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-7 group">
+            {/* High-Performance Blue Glow */}
+            <div className="absolute -top-12 -left-12 w-40 h-40 bg-blue-600/10 blur-[60px] rounded-full pointer-events-none" />
+            
+            <div className="relative z-10 space-y-6">
+              <div className="flex items-start gap-5">
+                <div className="mt-1 w-11 h-11 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 shadow-inner">
+                  <ShieldAlert size={22} className="text-blue-400 animate-pulse" />
+                </div>
+                <div className="space-y-1.5">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-400/90">Protocol Security</h4>
+                  <p className="text-[12px] leading-relaxed text-white/60 font-light">
+                    Aegis is <span className="text-blue-100 font-semibold">autonomous experimental software</span>. 
+                    System logic variances or node synchronization errors may result in irreversible capital loss. 
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleAccept}
+                  className="group relative w-full overflow-hidden py-3.5 rounded-xl bg-blue-600 text-[10px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-blue-500 hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] active:scale-[0.97]"
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    Initialize & Sync
+                    <ChevronRight size={14} className="group-hover:translate-x-1.5 transition-transform" />
+                  </span>
+                </button>
+                
+                <div className="flex items-center justify-center gap-2.5 opacity-30 hover:opacity-60 transition-opacity duration-300">
+                  <Scale size={11} className="text-blue-200" />
+                  <span className="text-[8px] font-black uppercase tracking-[0.4em] text-blue-100">Terminal_v1.0.4 // Security_First</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Scanning Accent */}
+            <div className="absolute bottom-0 left-0 h-[1.5px] w-full bg-gradient-to-r from-transparent via-blue-500/30 to-transparent" />
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
