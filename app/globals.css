@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { @apply border-border; }
+@layer base {
+  :root {
+    --background: 240 10% 4%;
+    --foreground: 0 0% 95%;
+    --card: 240 10% 7%;
+    --card-foreground: 0 0% 95%;
+    --border: 240 10% 14%;
+    --input: 240 10% 14%;
+    --primary: 263 90% 65%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 10% 12%;
+    --secondary-foreground: 0 0% 80%;
+    --muted: 240 10% 12%;
+    --muted-foreground: 240 5% 55%;
+    --accent: 263 90% 65%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --radius: 0.625rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+  ::selection { @apply bg-violet-500/30; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-white/10 rounded-full; }
+}
+
+/* Override wallet adapter button styling */
+.wallet-adapter-button {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9) !important;
+  border-radius: 10px !important;
+  font-family: inherit !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  height: 38px !important;
+  padding: 0 18px !important;
+  transition: all 0.15s ease !important;
+}
+.wallet-adapter-button:hover {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed) !important;
+  transform: translateY(-1px) !important;
+}
+.wallet-adapter-modal-wrapper {
+  background: #0f0f1a !important;
+  border: 1px solid #2a2a4a !important;
+  border-radius: 16px !important;
+}
+
+/* Ensure wallet adapter modal works on mobile */
+.wallet-adapter-modal-wrapper {
+  max-width: calc(100vw - 2rem) !important;
+  margin: 1rem !important;
+}
+
+/* Prevent horizontal scroll from mono text */
+.font-mono { word-break: break-all; }
+
+/* Smooth scrolling */
+html { scroll-behavior: smooth; }
+
+/* Better focus rings */
+*:focus-visible {
+  outline: 2px solid rgba(124, 58, 237, 0.6);
+  outline-offset: 2px;
+}
+
+/* Mobile fixes */
+@media (max-width: 640px) {
+  /* Prevent code blocks from overflowing */
+  code, pre { font-size: 10px !important; }
+
+  /* Wallet adapter modal full-screen on mobile */
+  .wallet-adapter-modal-wrapper {
+    width: calc(100vw - 24px) !important;
+    max-width: 100% !important;
+    margin: 12px !important;
+    border-radius: 16px !important;
+  }
+
+  /* Tighten page padding on mobile */
+  .container, main {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+}
+
+/* Prevent long addresses breaking layout */
+.break-all { word-break: break-all; }
+.font-mono  { overflow-wrap: anywhere; }
+
+/* Active nav link indicator */
+.nav-active { color: white; }
+
+/* Smooth page transitions */
+main { animation: fadeIn 0.15s ease; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+::selection {
+  background: rgba(255, 176, 0, 0.25);
+  color: white;
+}
