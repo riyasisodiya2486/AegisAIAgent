@@ -71,12 +71,12 @@ export function ConfirmModal({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 10 }}
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            className="relative w-full max-w-md overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#080808] p-1 shadow-2xl"
+            className="relative w-full max-w-md overflow-hidden rounded-3xl md:rounded-[2.5rem] border border-white/10 bg-[#080808] p-1 shadow-2xl"
           >
             {/* Subtle Gradient Noise Texture */}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
 
-            <div className="relative p-8 space-y-8">
+            <div className="relative p-6 sm:p-8 space-y-8">
               {/* Header: Identity & Icon */}
               <div className="flex flex-col items-center text-center space-y-4">
                 <div className={`relative p-4 rounded-2xl border ${

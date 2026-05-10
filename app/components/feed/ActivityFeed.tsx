@@ -21,9 +21,9 @@ export function ActivityFeed() {
     <div className="relative rounded-[2.5rem] border border-white/5 bg-black/40 backdrop-blur-3xl overflow-hidden group shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
       
       {/* 1. Technical Header */}
-      <div className="flex items-center justify-between px-8 py-7 border-b border-white/5 bg-white/[0.01]">
+      <div className="flex items-center justify-between px-4 sm:px-8 py-5 sm:py-7 border-b border-white/5 bg-white/[0.01]">
         <div className="flex items-center gap-4">
-          <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 group-hover:border-blue-400/40 transition-colors">
+          <div className="p-2 sm:p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 group-hover:border-blue-400/40 transition-colors">
             <Terminal size={16} className="text-blue-400" />
           </div>
           <div className="flex flex-col">
@@ -50,15 +50,15 @@ export function ActivityFeed() {
         <button
           onClick={refresh}
           disabled={loading}
-          className="group relative p-3 rounded-xl bg-blue-500/5 border border-white/5 text-white/30 hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/10 transition-all active:scale-90"
+          className="group relative p-2.5 rounded-xl bg-blue-500/5 border border-white/5 text-white/30 hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/10 transition-all active:scale-90"
         >
           <RefreshCcw size={14} className={`${loading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-700"}`} />
         </button>
       </div>
 
       {/* 2. Magnetic Segmented Control (Tabs) */}
-      <div className="p-3 bg-white/[0.01] border-b border-white/5">
-        <div className="flex p-1.5 gap-1.5 bg-black/40 rounded-2xl relative border border-white/5">
+      <div className="p-2 sm:p-3 bg-white/[0.01] border-b border-white/5">
+        <div className="flex p-1 gap-1 bg-black/40 rounded-xl sm:rounded-2xl relative border border-white/5">
           {(["transactions", "runs"] as Tab[]).map((t) => (
             <button
               key={t}
@@ -96,7 +96,7 @@ export function ActivityFeed() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="py-24 flex flex-col items-center justify-center text-center px-12"
+              className="py-16 sm:py-24 flex flex-col items-center justify-center text-center px-6 sm:px-12"
             >
               <div className="relative mb-8">
                 <div className="absolute inset-0 bg-blue-500/10 blur-[50px] rounded-full" />

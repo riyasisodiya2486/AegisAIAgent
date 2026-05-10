@@ -24,10 +24,8 @@ export function NavBar() {
 
   useEffect(() => { setMounted(true); }, []);
 
-  if (!mounted) return null;
-
   return (
-    <nav className="sticky top-0 z-[100] w-full border-b border-blue-500/10 bg-[#050505]/80 backdrop-blur-3xl">
+    <nav className="sticky top-0 z-[100] w-full border-b border-blue-500/10 bg-transparent backdrop-blur-3xl">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
@@ -35,13 +33,13 @@ export function NavBar() {
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-4 group">
               <div className="relative">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-400 rounded-xl flex items-center justify-center font-black text-black shadow-[0_0_20px_rgba(59,130,246,0.3)] group-hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] transition-all duration-500 transform group-hover:-rotate-6">
-                  A
+                <div className="w-12 h-12 relative z-10 transition-transform duration-500 transform group-hover:scale-110 group-hover:rotate-3">
+                  <img src="/aegis_logo.png" alt="Aegis Logo" className="w-full h-full object-contain" />
                 </div>
-                <div className="absolute -inset-1 border border-blue-500/20 rounded-xl group-hover:border-blue-500/40 transition-colors" />
+                <div className="absolute -inset-2 bg-blue-500/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-bold tracking-tight text-white transition-colors">
+                <span className="text-xl font-black tracking-tighter text-white">
                   AEGIS
                 </span>
                 <span className="text-[7px] font-black tracking-[0.4em] text-blue-500/40 uppercase">

@@ -11,9 +11,6 @@ import { clusterApiUrl } from "@solana/web3.js";
 export const SolanaWalletProvider: FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
   const network  = WalletAdapterNetwork.Devnet;
   const endpoint = useMemo(
     () =>
@@ -26,8 +23,10 @@ export const SolanaWalletProvider: FC<{ children: ReactNode }> = ({
   // Passing PhantomWalletAdapter() explicitly causes double-registration.
   const wallets = useMemo(() => [], []);
 
-  if (!mounted) return <>{children}</>;
-
+  // We remove the !mounted early return to ensure that 
+  // children (like NavBar) always have a WalletContext available,
+  // preventing the "read 'wallets' on a WalletContext without providing one" error.
+  
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect={false}>

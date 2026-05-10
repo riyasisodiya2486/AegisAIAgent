@@ -84,40 +84,56 @@ export function useVaultState(vaultPda: PublicKey | null): UseVaultStateResult {
 
   useEffect(() => {
     mountedRef.current = true;
+    
+    // Safety check: if dependencies aren't ready, don't subscribe
     if (!vaultPda || !connection || !client) return;
 
+    // Initial fetch on mount
     fetchVault();
 
-    // Use onAccountChange subscription — fires immediately when vault changes
+    const vaultKey = vaultPda.toBase58();
     let subId: number | null = null;
+
     try {
+      // 1. Set up the WebSocket subscription
       subId = connection.onAccountChange(
         vaultPda,
         () => {
-          // Invalidate cache on account change
-          cache.delete(vaultPda.toBase58());
+          // IMPORTANT: Clear the cache for this specific vault 
+          // so fetchVault is forced to get the latest data from RPC
+          cache.delete(vaultKey); 
+          
           if (mountedRef.current) fetchVault();
         },
         "confirmed"
       );
-    } catch {
-      // Fallback to polling every 10s
-      const id = setInterval(() => {
-        if (mountedRef.current) fetchVault();
+    } catch (e) {
+      console.warn("Aegis: onAccountChange failed, falling back to polling.", e);
+      
+      // 2. Fallback: If WebSockets fail, poll every 10 seconds
+      const pollId = setInterval(() => {
+        if (mountedRef.current) {
+          cache.delete(vaultKey); // Clear cache before poll
+          fetchVault();
+        }
       }, 10_000);
+
       return () => {
         mountedRef.current = false;
-        clearInterval(id);
+        clearInterval(pollId);
       };
     }
 
+    // 3. Cleanup: Stop listening when component unmounts or vaultPda changes
     return () => {
       mountedRef.current = false;
       if (subId !== null) {
-        connection.removeAccountChangeListener(subId).catch(() => {});
+        connection.removeAccountChangeListener(subId).catch((err) => {
+          console.error("Aegis: Failed to remove account listener", err);
+        });
       }
     };
-  }, [vaultPda?.toBase58(), connection, client]);
+  }, [vaultPda?.toBase58(), connection, client, fetchVault]);
 
   return { vault, loading, error, errorMsg, refresh: fetchVault };
 }

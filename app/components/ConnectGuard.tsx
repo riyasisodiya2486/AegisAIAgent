@@ -42,7 +42,7 @@ export function ConnectGuard({ children, message }: Props) {
             <div className="h-full w-full bg-[linear-gradient(to_right,#3b82f612_1px,transparent_1px),linear-gradient(to_bottom,#3b82f612_1px,transparent_1px)] bg-[size:32px_32px]" />
           </div>
 
-          <div className="relative z-10 overflow-hidden rounded-[3rem] border border-blue-500/10 bg-[#050505]/80 backdrop-blur-3xl p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+          <div className="relative z-10 overflow-hidden rounded-3xl sm:rounded-[3rem] border border-blue-500/10 bg-[#050505]/80 backdrop-blur-3xl p-6 sm:p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
             {/* Grainy Texture */}
             <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
 

@@ -4,7 +4,6 @@ import { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { DisclaimerFooter } from "./DisclaimerFooter";
 import { RpcStatusBanner } from "./RpcStatusBanner";
-import { NavBar } from "./NavBar";
 import { AmbientBackground } from "./AmbientBackground";
 
 export function PageShell({ children }: { children: ReactNode }) {
@@ -18,7 +17,6 @@ export function PageShell({ children }: { children: ReactNode }) {
 
       {/* 3. Header Infrastructure */}
       <div className="relative z-[100]">
-        <NavBar />
         <RpcStatusBanner />
       </div>
 

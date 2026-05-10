@@ -95,15 +95,15 @@ const AgentStatCard = ({ label, value, sub, icon: Icon, chartData, loading, smal
 };
 
 const HealthIndex = ({ progress }: { progress: number }) => (
-  <div className="lg:col-span-2 p-10 rounded-[2.5rem] border border-white/5 bg-gradient-to-br from-blue-900/20 to-transparent relative overflow-hidden group backdrop-blur-sm">
+  <div className="lg:col-span-2 p-6 sm:p-10 rounded-[2rem] sm:rounded-[2.5rem] border border-white/5 bg-gradient-to-br from-blue-900/20 to-transparent relative overflow-hidden group backdrop-blur-sm">
     <div className="relative z-10">
       <div className="flex items-center gap-3 mb-8">
         <div className="w-1 h-4 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
         <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Agent Health Index</h4>
       </div>
       <div className="flex items-baseline gap-2 mb-6">
-        <span className="text-7xl font-light tracking-tighter text-white">{progress}%</span>
-        <span className="text-sm text-blue-400/60 uppercase font-bold tracking-widest">Utilized</span>
+        <span className="text-5xl sm:text-7xl font-light tracking-tighter text-white">{progress}%</span>
+        <span className="text-[10px] sm:text-sm text-blue-400/60 uppercase font-bold tracking-widest">Utilized</span>
       </div>
       <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden mb-4 p-[2px]">
         <motion.div 
@@ -204,7 +204,7 @@ function DashboardContent() {
               {publicKey ? `AUTH_ID: ${publicKey.toBase58().slice(0, 6)}...${publicKey.toBase58().slice(-6)}` : "Authenticating"}
             </span>
           </div>
-          <h1 className="text-5xl lg:text-7xl font-extralight tracking-tighter text-white leading-none">
+          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extralight tracking-tighter text-white leading-none">
             CENTRAL <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">HUB</span>
           </h1>
         </div>
@@ -238,9 +238,9 @@ function DashboardContent() {
       )}
 
       {showNoVault && (
-        <motion.div variants={fadeIn} className="p-20 rounded-[3rem] border border-dashed border-white/10 flex flex-col items-center text-center bg-blue-500/[0.02]">
+        <motion.div variants={fadeIn} className="p-10 sm:p-20 rounded-2xl sm:rounded-[3rem] border border-dashed border-white/10 flex flex-col items-center text-center bg-blue-500/[0.02]">
             <ShieldCheck className="text-white/20 mb-6" size={28} />
-            <h3 className="text-xl text-white font-light">No Protocol Detected</h3>
+            <h3 className="text-lg sm:text-xl text-white font-light">No Protocol Detected</h3>
             <PremiumButton href="/create-vault" className="mt-8">Initialize Vault</PremiumButton>
         </motion.div>
       )}

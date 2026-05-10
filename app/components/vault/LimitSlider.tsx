@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { TxButton } from "@/components/TxButton";
 import { VaultState } from "@aegis/sdk";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gauge, ArrowRight } from "lucide-react";
+import { Gauge, ArrowRight, Activity } from "lucide-react";
 
 interface Props {
   vault:           VaultState | null;
@@ -40,18 +40,18 @@ export function LimitSlider({ vault, onUpdateLimit, onSuccess }: Props) {
   const isDirty = Math.abs(value - currentLimit) > 0.00001;
 
   return (
-    <div className="rounded-[2rem] border border-blue-500/15 bg-[#050505] p-7 space-y-6 shadow-2xl relative overflow-hidden">
+    <div className="rounded-[2rem] border border-blue-500/15 bg-[#050505] p-5 sm:p-7 space-y-5 sm:space-y-6 shadow-2xl relative overflow-hidden">
       {/* Background Subtle Glow */}
       <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-600/10 blur-[100px] pointer-events-none" />
 
       <div className="flex items-start justify-between">
-        <div>
+        <div className="flex-1">
           <h3 className="font-black text-xs uppercase tracking-[0.3em] text-blue-400">Risk_Parameters</h3>
-          <p className="text-[11px] text-blue-100/30 mt-1.5 leading-relaxed max-w-[260px]">
+          <p className="text-[10px] sm:text-[11px] text-blue-100/30 mt-1.5 leading-relaxed max-w-[260px]">
             The agent process cannot exceed this liquidity threshold per 24-hour cycle.
           </p>
         </div>
-        <div className="p-2.5 rounded-xl bg-blue-500/5 border border-blue-500/10">
+        <div className="p-2 sm:p-2.5 rounded-xl bg-blue-500/5 border border-blue-500/10">
           <Gauge size={16} className="text-blue-500/50" />
         </div>
       </div>

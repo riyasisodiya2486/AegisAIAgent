@@ -3,6 +3,8 @@ import "./globals.css";
 import { SolanaWalletProvider } from "@/providers/WalletProvider";
 import { Toaster } from "sonner";
 import { TermsBanner } from "@/components/TermsBanner";
+import { NavBar } from "@/components/NavBar";
+import { Preloader } from "@/components/Preloader";
 
 
 
@@ -16,6 +18,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className="bg-[#0a0a0f] text-white antialiased">
         <SolanaWalletProvider>
+          <Preloader />
+          <div className="relative z-50">
+            <NavBar />
+          </div>
           {children}
           
           {/* Global UI Components */}

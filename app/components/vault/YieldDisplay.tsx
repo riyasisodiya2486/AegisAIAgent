@@ -23,14 +23,14 @@ export function YieldDisplay({ vault, onStake, onAccrueYield, onSuccess }: Props
     : 0;
 
   return (
-    <div className="rounded-[2rem] border border-blue-500/15 bg-[#050505] p-7 shadow-2xl relative overflow-hidden">
+    <div className="rounded-[2rem] border border-blue-500/15 bg-[#050505] p-5 sm:p-7 shadow-2xl relative overflow-hidden">
       {/* Header Section */}
-      <div className="mb-8">
+      <div className="mb-6 sm:mb-8">
         <div className="flex items-center gap-2 mb-1.5">
           <Activity size={14} className="text-blue-500" />
           <h3 className="font-black text-xs uppercase tracking-[0.3em] text-blue-400">Yield_Engine</h3>
         </div>
-        <p className="text-[11px] font-medium text-blue-100/30 uppercase tracking-tight leading-relaxed max-w-xs">
+        <p className="text-[10px] sm:text-[11px] font-medium text-blue-100/30 uppercase tracking-tight leading-relaxed max-w-xs">
           Automated capital optimization. Assets remain liquid via the agent's dynamic unstaking protocol.
         </p>
       </div>

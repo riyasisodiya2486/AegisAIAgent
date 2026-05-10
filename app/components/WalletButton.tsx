@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletReadyState, WalletName } from "@solana/wallet-adapter-base";
 import { motion, AnimatePresence } from "framer-motion";
@@ -118,72 +119,75 @@ export function WalletButton({ className }: { className?: string }) {
       </AnimatePresence>
 
       {/* ── Wallet Selection Modal ── */}
-      <AnimatePresence>
-        {showWalletList && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-md" 
-              onClick={() => setShowWalletList(false)} 
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: "-45%", x: "-50%" }}
-              animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
-              exit={{ opacity: 0, scale: 0.9, y: "-45%", x: "-50%" }}
-              className="fixed left-1/2 top-1/2 z-[70] w-full max-w-md px-4"
-            >
-              <div className="rounded-[2.5rem] border border-blue-500/20 bg-[#070707] shadow-[0_0_60px_rgba(0,0,0,0.8)] overflow-hidden">
-                <div className="px-10 py-8 border-b border-blue-500/10 flex items-center justify-between bg-gradient-to-b from-blue-500/[0.02] to-transparent">
-                  <div>
-                    <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-3">
-                      Select <span className="text-blue-500">Terminal</span>
-                    </h2>
-                    <p className="text-[9px] text-blue-400/40 uppercase tracking-[0.4em] mt-2 font-black">Authorized_Access_Only</p>
+      {mounted && typeof window !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {showWalletList && (
+            <>
+              <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-md" 
+                onClick={() => setShowWalletList(false)} 
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: "-45%", x: "-50%" }}
+                animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
+                exit={{ opacity: 0, scale: 0.9, y: "-45%", x: "-50%" }}
+                className="fixed left-1/2 top-1/2 z-[1010] w-full max-w-md px-4"
+              >
+                <div className="rounded-[2.5rem] border border-blue-500/20 bg-[#070707] shadow-[0_0_60px_rgba(0,0,0,0.8)] overflow-hidden">
+                  <div className="px-10 py-8 border-b border-blue-500/10 flex items-center justify-between bg-gradient-to-b from-blue-500/[0.02] to-transparent">
+                    <div>
+                      <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-3">
+                        Select <span className="text-blue-500">Terminal</span>
+                      </h2>
+                      <p className="text-[9px] text-blue-400/40 uppercase tracking-[0.4em] mt-2 font-black">Authorized_Access_Only</p>
+                    </div>
+                    <button onClick={() => setShowWalletList(false)} className="p-2.5 rounded-xl hover:bg-blue-500/10 text-white/20 hover:text-blue-400 transition-all">
+                      <X size={20} />
+                    </button>
                   </div>
-                  <button onClick={() => setShowWalletList(false)} className="p-2.5 rounded-xl hover:bg-blue-500/10 text-white/20 hover:text-blue-400 transition-all">
-                    <X size={20} />
-                  </button>
-                </div>
 
-                <div className="p-5 max-h-[55vh] overflow-y-auto scrollbar-hide">
-                  {wallets.length === 0 ? (
-                    <div className="py-14 text-center">
-                      <div className="w-20 h-20 rounded-[2rem] bg-blue-500/5 flex items-center justify-center mx-auto mb-5 border border-blue-500/10">
-                        <Wallet className="text-blue-500/20" size={32} />
+                  <div className="p-5 max-h-[55vh] overflow-y-auto scrollbar-hide">
+                    {wallets.length === 0 ? (
+                      <div className="py-14 text-center">
+                        <div className="w-20 h-20 rounded-[2rem] bg-blue-500/5 flex items-center justify-center mx-auto mb-5 border border-blue-500/10">
+                          <Wallet className="text-blue-500/20" size={32} />
+                        </div>
+                        <p className="text-sm text-blue-200/40 font-medium">No Providers Detected</p>
+                        <a href="https://phantom.app" target="_blank" className="mt-5 inline-block text-[10px] font-black uppercase tracking-[0.3em] text-blue-500 hover:text-blue-400 underline-offset-8 hover:underline">Download_Phantom →</a>
                       </div>
-                      <p className="text-sm text-blue-200/40 font-medium">No Providers Detected</p>
-                      <a href="https://phantom.app" target="_blank" className="mt-5 inline-block text-[10px] font-black uppercase tracking-[0.3em] text-blue-500 hover:text-blue-400 underline-offset-8 hover:underline">Download_Phantom →</a>
-                    </div>
-                  ) : (
-                    <div className="space-y-5">
-                      {installedWallets.length > 0 && (
-                        <div className="space-y-3">
-                          <p className="px-4 text-[9px] font-black text-blue-400/30 uppercase tracking-[0.3em]">Hardware_Verified</p>
-                          {installedWallets.map(w => (
-                            <WalletOption key={w.adapter.name} name={w.adapter.name} icon={w.adapter.icon} status="Ready" onClick={() => handleSelectWallet(w.adapter.name)} />
-                          ))}
-                        </div>
-                      )}
-                      {otherWallets.length > 0 && (
-                        <div className="space-y-3">
-                          <p className="px-4 text-[9px] font-black text-white/10 uppercase tracking-[0.3em] pt-4">External_Protocols</p>
-                          {otherWallets.map(w => (
-                            <WalletOption key={w.adapter.name} name={w.adapter.name} icon={w.adapter.icon} status="Setup" onClick={() => handleSelectWallet(w.adapter.name)} isOther />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    ) : (
+                      <div className="space-y-5">
+                        {installedWallets.length > 0 && (
+                          <div className="space-y-3">
+                            <p className="px-4 text-[9px] font-black text-blue-400/30 uppercase tracking-[0.3em]">Hardware_Verified</p>
+                            {installedWallets.map(w => (
+                              <WalletOption key={w.adapter.name} name={w.adapter.name} icon={w.adapter.icon} status="Ready" onClick={() => handleSelectWallet(w.adapter.name)} />
+                            ))}
+                          </div>
+                        )}
+                        {otherWallets.length > 0 && (
+                          <div className="space-y-3">
+                            <p className="px-4 text-[9px] font-black text-white/10 uppercase tracking-[0.3em] pt-4">External_Protocols</p>
+                            {otherWallets.map(w => (
+                              <WalletOption key={w.adapter.name} name={w.adapter.name} icon={w.adapter.icon} status="Setup" onClick={() => handleSelectWallet(w.adapter.name)} isOther />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="px-8 py-5 bg-blue-500/[0.02] flex items-center justify-center gap-3 border-t border-blue-500/5">
+                    <ShieldCheck size={12} className="text-blue-500/40" />
+                    <p className="text-[8px] text-blue-500/20 uppercase tracking-[0.5em] font-black">Secure_Handshake_Active</p>
+                  </div>
                 </div>
-                <div className="px-8 py-5 bg-blue-500/[0.02] flex items-center justify-center gap-3 border-t border-blue-500/5">
-                  <ShieldCheck size={12} className="text-blue-500/40" />
-                  <p className="text-[8px] text-blue-500/20 uppercase tracking-[0.5em] font-black">Secure_Handshake_Active</p>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }

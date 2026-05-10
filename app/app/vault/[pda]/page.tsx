@@ -102,7 +102,7 @@ export default function VaultPage() {
               >
                 <ArrowLeft size={12} className="group-hover:-translate-x-1 transition-transform" /> Dashboard
               </Link>
-              <h1 className="text-5xl font-light tracking-tighter text-white">
+              <h1 className="text-3xl sm:text-5xl font-light tracking-tighter text-white">
                 Vault <span className="font-medium bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">Configuration</span>
               </h1>
               <div 
@@ -170,11 +170,11 @@ export default function VaultPage() {
           {/* Emergency Section */}
           {vault && (
             <motion.div variants={fadeIn} className="space-y-8 pt-10">
-              <div className="relative flex items-center gap-6">
+              <div className="relative flex items-center gap-3 md:gap-6">
                 <div className="flex-1 h-px bg-gradient-to-r from-transparent to-red-500/20" />
-                <div className="flex items-center gap-3 px-5 py-2 rounded-full border border-red-500/20 bg-red-500/5 backdrop-blur-md">
+                <div className="flex items-center gap-3 px-4 md:px-5 py-2 rounded-full border border-red-500/20 bg-red-500/5 backdrop-blur-md shrink-0">
                   <ShieldAlert size={14} className="text-red-500 animate-pulse" />
-                  <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.4em]">
+                  <span className="text-[9px] md:text-[10px] font-black text-red-500 uppercase tracking-[0.4em]">
                     Danger Zone
                   </span>
                 </div>
@@ -182,10 +182,10 @@ export default function VaultPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="rounded-[2.5rem] border border-red-500/10 bg-red-500/[0.01] hover:bg-red-500/[0.03] transition-all overflow-hidden p-1">
+                <div className="rounded-3xl md:rounded-[2.5rem] border border-red-500/10 bg-red-500/[0.01] hover:bg-red-500/[0.03] transition-all overflow-hidden p-1">
                   <KillSwitch vault={vault} onRevoke={actions.revoke} onSuccess={refresh} />
                 </div>
-                <div className="rounded-[2.5rem] border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all overflow-hidden p-1">
+                <div className="rounded-3xl md:rounded-[2.5rem] border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all overflow-hidden p-1">
                   <WithdrawPanel vault={vault} onWithdraw={actions.withdraw} />
                 </div>
               </div>
@@ -194,7 +194,7 @@ export default function VaultPage() {
 
           {/* Infrastructure Metadata */}
           {vault && (
-            <motion.div variants={fadeIn} className="rounded-[3rem] border border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent p-10 space-y-10 relative overflow-hidden group">
+            <motion.div variants={fadeIn} className="rounded-3xl sm:rounded-[3rem] border border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent p-6 sm:p-10 space-y-10 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                 <Sparkles size={40} className="text-blue-400" />
               </div>
@@ -228,10 +228,10 @@ export default function VaultPage() {
                     navigator.clipboard.writeText(`VAULT_PDA_ADDRESS=${pda}`);
                     toast.success("Environment variable copied");
                   }}
-                  className="group flex items-center gap-3 px-6 py-4 rounded-2xl bg-blue-600 text-white font-bold transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(37,99,235,0.2)] hover:shadow-[0_0_30px_rgba(37,99,235,0.4)]"
+                  className="group flex items-center gap-3 px-4 sm:px-6 py-3.5 sm:py-4 rounded-2xl bg-blue-600 text-white font-bold transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(37,99,235,0.2)] hover:shadow-[0_0_30px_rgba(37,99,235,0.4)]"
                 >
                   <Copy size={16} />
-                  <span className="text-[10px] uppercase tracking-widest">Copy .env</span>
+                  <span className="text-[10px] uppercase tracking-widest hidden sm:inline">Copy .env</span>
                 </button>
               </div>
             </motion.div>

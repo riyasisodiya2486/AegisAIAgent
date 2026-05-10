@@ -49,11 +49,11 @@ export function TransactionRow({ tx, isNew }: Props) {
   const cfg = STATUS_CONFIG[tx.status] ?? STATUS_CONFIG.ERROR;
 
   return (
-    <div className={`group flex items-start gap-5 p-5 rounded-[1.5rem] border border-white/5 bg-white/[0.01] transition-all duration-300 hover:bg-blue-500/[0.03] hover:border-blue-500/20 ${isNew ? 'animate-in fade-in slide-in-from-top-2 duration-700' : ''}`}>
+    <div className={`group flex items-start gap-3 sm:gap-5 p-4 sm:p-5 rounded-2xl sm:rounded-[1.5rem] border border-white/5 bg-white/[0.01] transition-all duration-300 hover:bg-blue-500/[0.03] hover:border-blue-500/20 ${isNew ? 'animate-in fade-in slide-in-from-top-2 duration-700' : ''}`}>
       
       {/* Status icon with subtle pulse for new entries */}
       <div className="relative">
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-sm font-black transition-transform group-hover:scale-110 ${cfg.iconBg}`}>
+        <div className={`flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl border text-xs sm:text-sm font-black transition-transform group-hover:scale-110 ${cfg.iconBg}`}>
           {cfg.icon}
         </div>
         {isNew && (
@@ -63,15 +63,15 @@ export function TransactionRow({ tx, isNew }: Props) {
 
       {/* Main content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-3 mb-1.5">
-          <span className="font-bold text-[15px] tracking-tight text-white/90 group-hover:text-white transition-colors">
+        <div className="flex items-center gap-2 sm:gap-3 mb-1.5">
+          <span className="font-bold text-sm sm:text-[15px] tracking-tight text-white/90 group-hover:text-white transition-colors">
             {tx.amount_sol > 0 ? `${tx.amount_sol} SOL` : "0.00 SOL"}
           </span>
-          <span className="text-white/10 text-[10px] font-black tracking-widest">→</span>
-          <span className="font-mono text-[11px] text-blue-400/40 bg-blue-500/[0.05] border border-blue-500/10 px-2 py-0.5 rounded-md group-hover:text-blue-400/60 transition-colors">
-            {tx.recipient.slice(0, 6)}···{tx.recipient.slice(-4)}
+          <span className="text-white/10 text-[10px] font-black tracking-widest hidden sm:inline">→</span>
+          <span className="font-mono text-[10px] sm:text-[11px] text-blue-400/40 bg-blue-500/[0.05] border border-blue-500/10 px-1.5 sm:px-2 py-0.5 rounded-md group-hover:text-blue-400/60 transition-colors">
+            {tx.recipient.slice(0, 4)}···{tx.recipient.slice(-4)}
           </span>
-          <span className={`ml-auto text-[9px] px-2.5 py-1 rounded-lg border font-black uppercase tracking-[0.2em] transition-all ${cfg.badge}`}>
+          <span className={`ml-auto text-[8px] sm:text-[9px] px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border font-black uppercase tracking-[0.2em] transition-all ${cfg.badge}`}>
             {cfg.label}
           </span>
         </div>

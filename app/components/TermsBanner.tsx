@@ -27,9 +27,9 @@ export function TermsBanner() {
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 30, scale: 0.9 }}
-          className="fixed bottom-6 right-6 z-[100] max-w-[360px] w-full px-4 md:px-0"
+          className="fixed bottom-4 sm:bottom-6 right-0 sm:right-6 left-0 sm:left-auto z-[100] max-w-[360px] w-full px-4 sm:px-0 mx-auto sm:mx-0"
         >
-          <div className="relative overflow-hidden rounded-[2.5rem] border border-blue-500/20 bg-[#050505]/90 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-7 group">
+          <div className="relative overflow-hidden rounded-3xl sm:rounded-[2.5rem] border border-blue-500/20 bg-[#050505]/90 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-6 sm:p-7 group">
             {/* High-Performance Blue Glow */}
             <div className="absolute -top-12 -left-12 w-40 h-40 bg-blue-600/10 blur-[60px] rounded-full pointer-events-none" />
             
