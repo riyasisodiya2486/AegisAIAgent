@@ -22,3 +22,4 @@ deploy-keypair.json
 EOFtest-ledger/
 test-ledger/
 target/
+.vercel
