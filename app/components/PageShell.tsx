@@ -5,22 +5,21 @@ import { motion } from "framer-motion";
 import { DisclaimerFooter } from "./DisclaimerFooter";
 import { RpcStatusBanner } from "./RpcStatusBanner";
 import { AmbientBackground } from "./AmbientBackground";
+import { JudgeBanner } from "./JudgeBanner"; // Import the redesigned banner
 
 export function PageShell({ children }: { children: ReactNode }) {
   return (
     <div className="relative flex flex-col min-h-screen bg-[#050505] text-white selection:bg-blue-500/30">
-      {/* 1. Global Background Layers */}
       <AmbientBackground />
       
-      {/* 2. Global Grainy Overlay */}
       <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.02] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
 
       {/* 3. Header Infrastructure */}
       <div className="relative z-[100]">
+        <JudgeBanner />
         <RpcStatusBanner />
       </div>
 
-      {/* 4. Main Content Area */}
       <main className="relative z-10 flex-1 flex flex-col">
         <motion.div 
           initial={{ opacity: 0, y: 15 }}
@@ -32,8 +31,7 @@ export function PageShell({ children }: { children: ReactNode }) {
         </motion.div>
       </main>
 
-      {/* 5. Decorative Side Elements - Fixed Alignment */}
-      {/* Left Side */}
+      {/* Decorative Side Elements */}
       <div className="fixed left-8 inset-y-0 hidden 2xl:flex flex-col items-center justify-center gap-8 z-[5] pointer-events-none">
         <div className="flex flex-col items-center gap-6 opacity-20">
           <span className="[writing-mode:vertical-lr] text-[8px] font-black uppercase tracking-[0.6em] text-blue-400 whitespace-nowrap">
@@ -47,7 +45,6 @@ export function PageShell({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      {/* Right Side */}
       <div className="fixed right-8 inset-y-0 hidden 2xl:flex flex-col items-center justify-center gap-8 z-[5] pointer-events-none">
         <div className="flex flex-col items-center gap-6 opacity-20">
           <motion.div 
@@ -61,7 +58,6 @@ export function PageShell({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      {/* 6. Protocol Footer */}
       <div className="relative z-20">
         <DisclaimerFooter />
       </div>

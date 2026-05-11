@@ -108,66 +108,76 @@ export function useAgentLogs(): UseAgentLogsResult {
     pollRef.current = setInterval(fetchLogs, POLL_INTERVAL_MS);
   }, [fetchLogs]);
 
-  const tryWebSocket = useCallback(() => {
-    if (typeof window === "undefined") return;
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+const tryWebSocket = useCallback(() => {
+  if (typeof window === "undefined") return;
 
-    const wsUrl = (process.env.NEXT_PUBLIC_LOG_SERVER_URL ?? "http://localhost:3001")
-      .replace(/^http/, "ws");
+  const logServer = process.env.NEXT_PUBLIC_LOG_SERVER_URL ?? "";
 
-    try {
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
+  // Never attempt WebSocket if log server is localhost and
+  // we are running on a deployed domain (not localhost)
+  const isDeployed = !window.location.hostname.includes("localhost") &&
+                     !window.location.hostname.includes("127.0.0.1");
+  const isLocalServer = logServer.includes("localhost") ||
+                        logServer.includes("127.0.0.1");
 
-      ws.onopen = () => {
-        if (!mountedRef.current) return;
-        wsActiveRef.current = true;
-        setConnected(true);
-        setAgentOnline(true);
-        // Cancel polling — WS handles updates
-        if (pollRef.current) {
-          clearInterval(pollRef.current);
-          pollRef.current = null;
-        }
-      };
+  if (isDeployed && isLocalServer) {
+    // On Vercel/deployed URL — skip WebSocket, just show empty feed
+    setLoading(false);
+    setAgentOnline(false);
+    return;
+  }
 
-      ws.onmessage = (event) => {
-        if (!mountedRef.current) return;
-        try {
-          const msg = JSON.parse(event.data as string);
-          if (msg.type === "snapshot") {
-            setTransactions([...(msg.transactions ?? [])].reverse());
-            setLoading(false);
-          } else if (msg.type === "entry") {
-            if (msg.data?._type === "run") {
-              // It's an agent run broadcast
-              setRuns(prev => [msg.data, ...prev].slice(0, 20));
-            } else {
-              // It's a transaction
-              setTransactions(prev => [msg.data, ...prev].slice(0, 50));
-            }
+  const wsUrl = logServer.replace(/^http/, "ws");
+
+  try {
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      if (!mountedRef.current) return;
+      wsActiveRef.current = true;
+      setConnected(true);
+      setAgentOnline(true);
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+
+    ws.onmessage = (event) => {
+      if (!mountedRef.current) return;
+      try {
+        const msg = JSON.parse(event.data as string);
+        if (msg.type === "snapshot") {
+          const txs = (msg.transactions ?? []) as TransactionLog[];
+          setTransactions([...txs].reverse());
+          setLoading(false);
+        } else if (msg.type === "entry") {
+          if (msg.data?._type === "run") {
+            setRuns(prev => [msg.data as AgentRunLog, ...prev].slice(0, 20));
+          } else {
+            setTransactions(prev => [msg.data as TransactionLog, ...prev].slice(0, 50));
           }
-        } catch {}
-      };
+        }
+      } catch {}
+    };
 
-     ws.onerror = () => {
-        wsFailCountRef.current += 1;
-        wsActiveRef.current = false;
-      };
+    ws.onerror = () => {
+      wsActiveRef.current = false;
+    };
 
-      ws.onclose = () => {
-        if (!mountedRef.current) return;
-        wsActiveRef.current = false;
-        wsRef.current = null;
-        setConnected(false);
-        // Restart polling as fallback
-        startPolling();
-      };
-    } catch {
-      // WebSocket constructor failed — just poll
+    ws.onclose = () => {
+      if (!mountedRef.current) return;
+      wsActiveRef.current = false;
+      wsRef.current = null;
+      setConnected(false);
       startPolling();
-    }
-  }, [startPolling]);
+    };
+  } catch {
+    startPolling();
+  }
+}, [startPolling]);
+
 
   const refresh = useCallback(() => {
     fetchLogs();
