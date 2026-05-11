@@ -4,7 +4,7 @@
 > Built for the Solana Frontier Hackathon 2026.
 
 **Live Demo:** https://aegis-ai-agent-app.vercel.app/
-**Demo Video:** [YouTube link — see below]
+**Demo Video:** https://youtu.be/nnxjWqkKHcE
 **GitHub:** https://github.com/riyasisodiya2486/AegisAIAgent
 
 ---
